@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/app/components/ui/Sonner";
 import ThemeProvider from "@/app/components/ui/ThemeProvider";
 import { cn } from "@/app/lib/utils";
+import { AuthProvider } from "./context/AuthContext";
 
 const playfairDisplayHeading = Playfair_Display({subsets:['latin'],variable:'--font-heading'});
 
@@ -47,7 +48,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Toaster />
-          {children} 
+          <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </body>
     </html>
