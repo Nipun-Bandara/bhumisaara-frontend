@@ -3,15 +3,20 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import Login from './Login';
 import Register from './Register';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
+import DotGrid from '@/components/ui/DotGrid';
 
 export default function AuthContainer() {
   const [isSignup, setIsSignup] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY });
     };
@@ -19,18 +24,20 @@ export default function AuthContainer() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  const dotGridBaseColor = mounted && resolvedTheme === 'dark' ? '#2F293A' : '#dddcddff';
+
   return (
-    <div className="min-h-screen w-full bg-surface flex flex-col lg:flex-row relative text-on-surface">
+    <div className=" w-full bg-background flex flex-col lg:flex-row relative text-foreground">
       <Link
         href="/"
-        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-sm font-medium text-on-surface-variant transition-colors bg-surface-container rounded-lg hover:text-on-surface hover:bg-surface-container-high backdrop-blur-sm"
+        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted transition-colors bg-secondary rounded-lg hover:text-foreground hover:bg-secondary/80 backdrop-blur-sm"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home
       </Link>
       {/* Form Container - Scrolls with page */}
       <div
-        className={`w-full lg:w-1/2 flex-1 flex items-center justify-center px-8 pt-20 pb-8 lg:p-16 bg-surface transition-transform duration-700 ease-in-out z-10 ${isSignup ? 'lg:translate-x-full' : 'lg:translate-x-0'
+        className={`w-full lg:w-1/2 flex-1 flex items-center justify-center px-8 pt-20 pb-8 lg:p-16 bg-background transition-transform duration-700 ease-in-out z-10 ${isSignup ? 'lg:translate-x-full' : 'lg:translate-x-0'
           }`}
       >
         <div className="w-full max-w-md my-auto">
@@ -46,22 +53,29 @@ export default function AuthContainer() {
 
       {/* /Overlay Container - Sticky */}
       <div
-        className={`hidden lg:flex w-1/2 sticky top-0 h-screen bg-surface-container-low items-center justify-center overflow-hidden flex-col transition-transform duration-700 ease-in-out z-20 ${isSignup ? 'lg:-translate-x-full' : 'lg:translate-x-0'
+        className={`hidden lg:flex w-1/2 sticky top-0 h-screen bg-muted/30 items-center justify-center overflow-hidden flex-col transition-transform duration-700 ease-in-out z-20 ${isSignup ? 'lg:-translate-x-full' : 'lg:translate-x-0'
           }`}
       >
         {/* Background Grid/Pattern */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(var(--color-outline-variant) 1px, transparent 1px)',
-            backgroundSize: '24px 24px'
-          }}
-        />
+        <div className="absolute inset-0 opacity-50 pointer-events-none">
+          <DotGrid
+            dotSize={5}
+            gap={15}
+            baseColor={dotGridBaseColor}
+            activeColor="#10B981"
+            proximity={120}
+            shockRadius={250}
+            shockStrength={5}
+            resistance={750}
+            returnDuration={1.5}
+          />
+        </div>
 
         <div className="relative z-10 text-center mt-8 space-y-6">
-          <h2 className="text-2xl font-bold text-on-surface">
-            {isSignup ? "Already registered?" : "New to the Grid?"}
+          <h2 className="text-2xl font-bold text-foreground">
+            {isSignup ? "Already registered?" : "New to the BhumiSaara?"}
           </h2>
-          <p className="text-on-surface-variant max-w-sm px-8">
+          <p className="text-muted-foreground max-w-sm px-8">
             {isSignup
               ? "If you already have a PohoraChain account, sign in to continue managing your allocations."
               : "Create your PohoraChain account to access smart quotas, tracking, and the green market."}
