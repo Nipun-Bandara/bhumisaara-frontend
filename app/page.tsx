@@ -9,7 +9,7 @@ import { Testimonial } from "./components/landing/Testimonial";
 
 export default function LandingPage() {
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
+    <div className="bg-background text-foreground font-body-md min-h-screen flex flex-col">
       <Navigation />
 
       <main className="flex-grow pb-stack-lg flex flex-col gap-stack-lg">
@@ -26,7 +26,7 @@ export default function LandingPage() {
                 for sustainable food security.
               </p>
               <div className="flex flex-wrap gap-stack-md mt-stack-md">
-                <button className="flex items-center justify-center bg-primary-container text-on-primary font-label-md text-label-md px-8 py-4 rounded-full hover:bg-primary transition-colors soft-bloom">
+                <button className="flex items-center justify-center bg-primary text-on-primary font-label-md text-label-md px-8 py-4 rounded-full hover:bg-primary transition-colors soft-bloom">
                   Access Your Quota
                 </button>
                 <button className="flex items-center justify-center bg-transparent border-2 border-secondary text-secondary font-label-md text-label-md px-8 py-4 rounded-full hover:bg-surface-container-low transition-colors soft-bloom">
@@ -96,10 +96,10 @@ export default function LandingPage() {
                 <span className="material-symbols-outlined" data-icon="agriculture">
                   agriculture
                 </span>
-                PohoraPiyasa
+                BhumiSaara
               </Link>
               <p className="font-caption text-caption text-on-surface-variant">
-                © 2024 PohoraPiyasa National Agricultural Grid. All rights
+                © 2024 BhumiSaara National Agricultural Grid. All rights
                 reserved.
               </p>
             </div>

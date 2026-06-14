@@ -10,13 +10,13 @@ export function Stat() {
       {stats.map((feature, idx) => (
         <div
           key={idx}
-          className="relative flex flex-col border border-outline-variant items-center justify-center bg-surface p-3 sm:p-6 rounded-3xl overflow-hidden soft-bloom"
+          className="relative flex flex-col border border-border items-center justify-center bg-background p-3 sm:p-6 rounded-3xl overflow-hidden soft-bloom"
         >
           <Grid size={20} />
           <div className="relative z-20 mb-4 text-primary">
             {feature.icon}
           </div>
-          <div className="font-display-lg text-display-lg md:text-headline-lg lg:text-display-lg font-bold text-on-surface relative z-20 flex items-center">
+          <div className="font-display-lg text-display-lg md:text-headline-lg lg:text-display-lg font-bold text-foreground relative z-20 flex items-center">
             <CountUp
               from={0}
               to={feature.value}
@@ -27,7 +27,7 @@ export function Stat() {
             />
             {feature.suffix}
           </div>
-          <p className="text-on-surface-variant mt-2 font-body-md text-body-md relative z-20 text-center">
+          <p className="text-muted-foreground mt-2 font-body-md text-body-md relative z-20 text-center">
             {feature.description}
           </p>
         </div>
@@ -84,14 +84,14 @@ export const Grid = ({
   ];
   return (
     <div className="pointer-events-none absolute left-1/2 top-0  -ml-20 -mt-2 h-full w-full [mask-image:linear-gradient(white,transparent)]">
-      <div className="absolute inset-0 bg-gradient-to-r  [mask-image:radial-gradient(farthest-side_at_top,white,transparent)] dark:from-zinc-900/30 from-zinc-100/30 to-zinc-300/30 dark:to-zinc-900/30 opacity-100">
+      <div className="absolute inset-0 bg-gradient-to-r [mask-image:radial-gradient(farthest-side_at_top,white,transparent)] dark:from-zinc-900/30 from-zinc-100/30 to-zinc-300/30 dark:to-zinc-900/30 opacity-100">
         <GridPattern
           width={size ?? 20}
           height={size ?? 20}
           x="-12"
           y="4"
           squares={p}
-          className="absolute inset-0 h-full w-full  mix-blend-overlay dark:fill-white/10 dark:stroke-white/10 stroke-black/10 fill-black/10"
+          className="absolute inset-0 h-full w-full dark:fill-white/20 dark:stroke-white/20 stroke-black/10 fill-black/10"
         />
       </div>
     </div>

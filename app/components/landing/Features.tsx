@@ -55,15 +55,15 @@ export const Features = () => {
   return (
     <div className="pt-2 px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
       <div className="text-center mb-16">
-        <h2 className="font-headline-lg text-headline-lg md:text-display-lg text-on-surface mb-4">
+        <h2 className="font-headline-lg text-headline-lg md:text-display-lg text-foreground mb-4">
           Core Infrastructure
         </h2>
-        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+        <p className="font-body-lg text-body-lg text-muted-foreground max-w-2xl mx-auto">
           Everything the agricultural sector needs to manage resources, people, and distribution in one unified ecosystem.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 min-[450px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 relative z-10 soft-bloom rounded-3xl overflow-hidden bg-surface border border-outline-variant">
+      <div className="grid grid-cols-1 min-[450px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 relative z-10 soft-bloom rounded-3xl overflow-hidden bg-background border border-border">
         {features.map((feature, index) => (
           <Feature key={feature.title} {...feature} index={index} />
         ))}
@@ -86,25 +86,25 @@ const Feature = ({
   return (
     <div
       className={cn(
-        "flex flex-col lg:border-r py-5 relative group/feature border-outline-variant",
-        (index === 0 || index === 4) && "lg:border-l border-outline-variant",
-        index < 4 && "lg:border-b border-outline-variant",
+        "flex flex-col lg:border-r py-5 relative group/feature border-border",
+        (index === 0 || index === 4) && "lg:border-l border-border",
+        index < 4 && "lg:border-b border-border",
       )}
     >
       {index < 4 && (
-        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-200 absolute inset-0 h-full w-full bg-surface-container-high pointer-events-none" />
+        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-200 absolute inset-0 h-full w-full bg-muted pointer-events-none" />
       )}
       {index >= 4 && (
-        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-200 absolute inset-0 h-full w-full bg-surface-container-high pointer-events-none" />
+        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-200 absolute inset-0 h-full w-full bg-muted pointer-events-none" />
       )}
       <div className="mb-4 relative z-10 px-10 text-primary">{icon}</div>
       <div className="font-title-lg text-title-lg mb-2 relative z-10 px-10">
-        <div className="absolute left-0 inset-y-0 h-6 group-hover/feature:h-8 w-1 rounded-tr-full rounded-br-full bg-surface-container-highest group-hover/feature:bg-primary transition-all duration-200 origin-center" />
-        <span className="group-hover/feature:translate-x-2 transition duration-200 inline-block text-on-surface">
+        <div className="absolute left-0 inset-y-0 h-6 group-hover/feature:h-8 w-1 rounded-tr-full rounded-br-full bg-muted group-hover/feature:bg-primary transition-all duration-200 origin-center" />
+        <span className="group-hover/feature:translate-x-2 transition duration-200 inline-block text-foreground">
           {title}
         </span>
       </div>
-      <p className="font-body-md text-body-md text-on-surface-variant max-w-xs relative z-10 px-10">
+      <p className="font-body-md text-body-md text-muted-foreground max-w-xs relative z-10 px-10">
         {description}
       </p>
     </div>

@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pohora Piyasa",
+  title: "Bhumi Saara",
   description: "Employee management system.",
 };
 
