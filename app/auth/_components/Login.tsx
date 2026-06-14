@@ -5,7 +5,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { Mail, Lock, Eye as EyeIcon, EyeOff, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 interface LoginProps {
@@ -17,7 +17,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
 
-  const {login} = useAuth();
+  const { login } = useAuth();
 
   const formik = useFormik({
     initialValues: {
@@ -80,7 +80,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
               />
             </div>
             {formik.touched.email && formik.errors.email ? (
-               <div className="text-error text-xs mt-1">{formik.errors.email}</div>
+              <div className="text-error text-xs mt-1">{formik.errors.email}</div>
             ) : null}
           </div>
 
@@ -111,7 +111,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
               </button>
             </div>
             {formik.touched.password && formik.errors.password ? (
-               <div className="text-error text-xs mt-1">{formik.errors.password}</div>
+              <div className="text-error text-xs mt-1">{formik.errors.password}</div>
             ) : null}
           </div>
 
@@ -136,7 +136,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
               </select>
             </div>
             {formik.touched.role && formik.errors.role ? (
-               <div className="text-error text-xs mt-1">{formik.errors.role}</div>
+              <div className="text-error text-xs mt-1">{formik.errors.role}</div>
             ) : null}
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
             onClick={() => router.push('/forgot-password')}
             className="font-medium text-primary hover:text-primary/80 transition-colors"
           >
-             Forgot password?
+            Forgot password?
           </button>
         </div>
 

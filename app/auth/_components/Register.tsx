@@ -11,7 +11,7 @@ import {
   EyeOff,
   AlertCircle,
 } from "lucide-react";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 interface RegisterProps {
@@ -21,7 +21,7 @@ interface RegisterProps {
 export default function Register({ onSwitchToLogin }: RegisterProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const {register} = useAuth();
+  const { register } = useAuth();
 
   const formik = useFormik({
     initialValues: {
@@ -89,11 +89,10 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
               <input
                 type="email"
                 {...formik.getFieldProps("email")}
-                className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${
-                  formik.touched.email && formik.errors.email
+                className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${formik.touched.email && formik.errors.email
                     ? "border-error"
                     : "border-outline-variant"
-                }`}
+                  }`}
                 placeholder="you@example.com"
               />
             </div>
@@ -115,11 +114,10 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
               <input
                 type="text"
                 {...formik.getFieldProps("username")}
-                className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${
-                  formik.touched.username && formik.errors.username
+                className={`block w-full pl-10 pr-3 py-3 border rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${formik.touched.username && formik.errors.username
                     ? "border-error"
                     : "border-outline-variant"
-                }`}
+                  }`}
                 placeholder="Enter username"
               />
             </div>
@@ -140,11 +138,10 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
               <input
                 type={showPassword ? "text" : "password"}
                 {...formik.getFieldProps("password")}
-                className={`block w-full pl-10 pr-12 py-3 border rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${
-                  formik.touched.password && formik.errors.password
+                className={`block w-full pl-10 pr-12 py-3 border rounded-xl bg-surface-container text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${formik.touched.password && formik.errors.password
                     ? "border-error"
                     : "border-outline-variant"
-                }`}
+                  }`}
                 placeholder="Enter your password"
               />
               <button
@@ -173,11 +170,10 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
             <div className="relative group">
               <select
                 {...formik.getFieldProps("role")}
-                className={`block w-full pl-3 pr-10 py-3 border rounded-xl bg-surface-container text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${
-                  formik.touched.role && formik.errors.role
+                className={`block w-full pl-3 pr-10 py-3 border rounded-xl bg-surface-container text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all ${formik.touched.role && formik.errors.role
                     ? "border-error"
                     : "border-outline-variant"
-                }`}
+                  }`}
               >
                 <option value="FARMER">Farmer</option>
                 <option value="SYSTEM_ADMIN">System Admin</option>

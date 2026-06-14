@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans, Playfair_Display, Inter } from "next/font/google";
 
 import "./globals.css";
-import { Toaster } from "@/app/components/ui/Sonner";
-import ThemeProvider from "@/app/components/ui/ThemeProvider";
-import { cn } from "@/app/lib/utils";
-import { AuthProvider } from "./context/AuthContext";
+import { Toaster } from "@/components/ui/Sonner";
+import ThemeProvider from "@/components/ui/ThemeProvider";
+import { cn } from "@/lib/utils";
+import { AuthProvider } from "../context/AuthContext";
 
-const playfairDisplayHeading = Playfair_Display({subsets:['latin'],variable:'--font-heading'});
+const playfairDisplayHeading = Playfair_Display({ subsets: ['latin'], variable: '--font-heading' });
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

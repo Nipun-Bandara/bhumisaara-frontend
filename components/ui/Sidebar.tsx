@@ -1,5 +1,5 @@
 "use client";
-import { cn } from "@/app/lib/utils";
+import { cn } from "@/lib/utils";
 import React, { useEffect, useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
@@ -164,7 +164,7 @@ export const SidebarLink = ({
 }) => {
   const { open, animate } = useSidebar();
   const pathname = usePathname();
-  
+
   // Consider active if exact match or if we are in a sub-route (except for dashboard home which might be exactly /dashboard)
   const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
 
@@ -173,7 +173,7 @@ export const SidebarLink = ({
       href={link.href}
       className={cn(
         "flex items-center justify-start gap-3 rounded-lg px-4 py-3 font-label-md text-label-md",
-        isActive 
+        isActive
           ? "bg-secondary-container dark:bg-on-secondary-fixed-variant text-on-secondary-container dark:text-secondary-fixed font-bold active:scale-95 transition-transform"
           : "text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-variant transition-colors",
         className

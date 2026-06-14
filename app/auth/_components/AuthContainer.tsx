@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import Login from './Login';
 import Register from './Register';
-import { Button } from '@/app/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 
 export default function AuthContainer() {
   const [isSignup, setIsSignup] = useState(false);

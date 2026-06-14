@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
-import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/app/components/ui/Sidebar";
-import { getNavItemsForRoles, ICONS_MAP } from "@/app/lib/navigation";
-import { cn } from "@/app/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/Sidebar";
+import { getNavItemsForRoles, ICONS_MAP } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
-import { ThemeToggle } from "../components/ui/ThemeToggle";
-import { Loader } from "../components/ui/Loader";
+import { ThemeToggle } from "../../components/ui/ThemeToggle";
+import { Loader } from "../../components/ui/Loader";
 import { useEffect } from "react";
 
 export default function DashboardLayout({

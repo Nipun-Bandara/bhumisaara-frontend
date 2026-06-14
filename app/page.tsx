@@ -2,10 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { Navigation } from "./components/landing/Navigation";
-import { Stat } from "./components/landing/Stat";
-import { Features } from "./components/landing/Features";
-import { Testimonial } from "./components/landing/Testimonial";
+import { Navigation } from "../components/landing/Navigation";
+import { Stat } from "../components/landing/Stat";
+import { Features } from "../components/landing/Features";
+import { Testimonial } from "../components/landing/Testimonial";
 
 export default function LandingPage() {
   return (
