@@ -23,13 +23,13 @@ export function TestimonialCard({
   const key = `${name}-${role}-${image}`;
 
   return (
-    <div className="bg-surface rounded-3xl p-8 border border-outline-variant shadow-sm max-w-xl soft-bloom">
+    <div className="bg-background rounded-3xl p-8 border border-border shadow-sm max-w-xl soft-bloom">
       <div className="flex items-center gap-4 mb-6">
         <div className="relative w-16 h-16 flex-shrink-0">
           {/* Circular Progress Timer */}
           <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none">
             <circle
-              className="text-surface-container-highest"
+              className="text-muted"
               strokeWidth="4"
               stroke="currentColor"
               fill="transparent"
@@ -65,16 +65,16 @@ export function TestimonialCard({
         </div>
 
         <div>
-          <h3 className="font-title-lg text-title-lg text-on-surface">
+          <h3 className="font-title-lg text-title-lg text-foreground">
             {name}
           </h3>
-          <p className="font-caption text-caption text-on-surface-variant">
+          <p className="font-caption text-caption text-muted-foreground">
             {role}
           </p>
         </div>
       </div>
 
-      <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+      <p className="font-body-md text-body-md text-muted-foreground leading-relaxed">
         &quot;{testimonial}&quot;
       </p>
     </div>

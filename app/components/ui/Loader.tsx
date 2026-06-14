@@ -15,7 +15,7 @@ export function Loader({
   size = 40,
   stroke = 5,
   speed = 2,
-  color = "#e8004d",
+  color = "#08ff6bff",
   className,
 }: LoaderProps) {
   return (

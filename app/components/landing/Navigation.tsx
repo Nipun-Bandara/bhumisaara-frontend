@@ -81,7 +81,7 @@ export const Navigation = () => {
               : {
                 width: isScrolled ? "fit-content" : "1000px",
                 backgroundColor: isScrolled
-                  ? "var(--surface)"
+                  ? "var(--background)"
                   : "rgba(0, 0, 0, 0)",
               }
           }
@@ -98,7 +98,7 @@ export const Navigation = () => {
             <span className="material-symbols-outlined" data-icon="agriculture">
               agriculture
             </span>
-            PohoraPiyasa
+            BhumiSaara
           </Link>
           <ul className="hidden font-body-md gap-6 text-sm sm:flex whitespace-nowrap px-16">
             {navItems.map((item) => {
@@ -117,7 +117,7 @@ export const Navigation = () => {
                     />
                   )}
                   <Link
-                    className={`text-textPrimary hover:text-primary transition-colors ${isActive ? "font-bold" : ""
+                    className={`text-foreground hover:text-primary transition-colors ${isActive ? "font-bold" : ""
                       }`}
                     href={href}
                   >
@@ -167,7 +167,7 @@ export const Navigation = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 z-[1002] w-64 bg-backgroundSecondary border-l border-borderPrimary p-6 sm:hidden flex flex-col gap-6"
+              className="fixed right-0 top-0 bottom-0 z-[1002] w-64 bg-background border-l border-border p-6 sm:hidden flex flex-col gap-6"
             >
               <div className="flex items-center justify-between">
                 <Link
@@ -177,11 +177,11 @@ export const Navigation = () => {
                   <span className="material-symbols-outlined" data-icon="agriculture">
                     agriculture
                   </span>
-                  PohoraPiyasa
+                  BhumiSaara
                 </Link>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 text-textPrimary hover:bg-hoverPrimary rounded-full"
+                  className="p-2 text-foreground hover:bg-muted rounded-full"
                 >
                   <X size={24} />
                 </button>
@@ -196,8 +196,8 @@ export const Navigation = () => {
                         href={href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`block text-md ${pathname === href
-                            ? "text-primary font-bold"
-                            : "text-textPrimary hover:text-primary"
+                          ? "text-primary font-bold"
+                          : "text-foreground hover:text-primary"
                           }`}
                       >
                         {item.name}
@@ -209,7 +209,7 @@ export const Navigation = () => {
 
               <div className="mt-6 flex flex-col gap-4">
                 <Button
-                  className="w-full flex justify-center bg-primary text-btnHoverText hover:bg-hover"
+                  className="w-full flex justify-center bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={() => router.push("/auth")}
                 >
                   Launch App

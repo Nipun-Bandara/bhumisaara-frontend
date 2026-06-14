@@ -20,11 +20,11 @@ export function Testimonial() {
     <div className="py-stack-lg px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-gutter items-center">
         <div>
-          <h2 className="font-headline-lg text-headline-lg md:text-display-lg font-bold text-on-surface mb-stack-md">
+          <h2 className="font-headline-lg text-headline-lg md:text-display-lg font-bold text-foreground mb-stack-md">
             What the community says
           </h2>
-          <p className="font-body-lg text-body-lg text-on-surface-variant mb-0 max-w-lg">
-            Hear from farmers, distributors, and officials using PohoraPiyasa to ensure transparent and equitable fertilizer allocation.
+          <p className="font-body-lg text-body-lg text-muted-foreground mb-0 max-w-lg">
+            Hear from farmers, distributors, and officials using BhumiSaara to ensure transparent and equitable fertilizer allocation.
           </p>
         </div>
 
@@ -39,14 +39,14 @@ export function Testimonial() {
           <div className="flex gap-4 mt-8">
             <button
               onClick={handlePrev}
-              className="p-3 rounded-full bg-surface border border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface flex items-center justify-center soft-bloom"
+              className="p-3 rounded-full bg-background border border-border hover:bg-muted transition-colors text-foreground flex items-center justify-center soft-bloom"
               aria-label="Previous testimonial"
             >
               <span className="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
             </button>
             <button
               onClick={handleNext}
-              className="p-3 rounded-full bg-surface border border-outline-variant hover:bg-surface-container-high transition-colors text-on-surface flex items-center justify-center soft-bloom"
+              className="p-3 rounded-full bg-background border border-border hover:bg-muted transition-colors text-foreground flex items-center justify-center soft-bloom"
               aria-label="Next testimonial"
             >
               <span className="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
