@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import Login from './Login';
 import Register from './Register';
 import { Button } from '@/components/ui/button';
-import DotGrid from '@/components/ui/DotGrid';
+import DotGrid from '@/components/DotGrid';
 
 export default function AuthContainer() {
   const [isSignup, setIsSignup] = useState(false);

@@ -12,7 +12,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { ThemeToggle } from "../ui/ThemeToggle";
+import { ThemeToggle } from "../ThemeToggle";
 
 const navItems = [
   { name: "About", href: "#about" },

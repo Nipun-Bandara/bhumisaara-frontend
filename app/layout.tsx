@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans, Playfair_Display, Inter } from "next/font/google";
 
 import "./globals.css";
-import { Toaster } from "@/components/ui/Sonner";
-import ThemeProvider from "@/components/ui/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
+import ThemeProvider from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "../context/AuthContext";
 
