@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import FarmerProfile from "@/components/farmer/FarmerProfile";
+import GovermentProfile from "@/components/goverment/GovermentProfile";
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
@@ -15,11 +16,12 @@ export default function ProfilePage() {
     return <FarmerProfile />;
   }
 
-  if (
-    user?.roles.includes("SYSTEM_ADMIN") ||
-    user?.roles.includes("GOVERNMENT_ADMIN")
-  ) {
+  if (user?.roles.includes("SYSTEM_ADMIN")) {
     return <AdminProfile />;
+  }
+
+  if (user?.roles.includes("GOVERNMENT_ADMIN")) {
+    return <GovermentProfile />;
   }
 
   if (user?.roles.includes("PRIVATE_AGRO_DEALER")) {

@@ -33,34 +33,22 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["FARMER"],
   },
   {
-    id: "userManagement",
-    label: "User Management",
-    href: "/user-management",
-    roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN"],
+    id: "distributionLevel",
+    label: "Distribution Level",
+    href: "/distribution-level",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "importHistory",
+    label: "Import History",
+    href: "/import-history",
+    roles: ["GOVERNMENT_ADMIN"],
   },
   {
     id: "profile",
     label: "Profile",
     href: "/profile",
     roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN", "AGRARIAN_SERVICE_OFFICER", "FARMER", "PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
-  },
-  {
-    id: "finance",
-    label: "Finance",
-    href: "/finance",
-    roles: ["GOVERNMENT_ADMIN", "SYSTEM_ADMIN"],
-  },
-  {
-    id: "hr",
-    label: "HR",
-    href: "/hr",
-    roles: ["GOVERNMENT_ADMIN", "SYSTEM_ADMIN"],
-  },
-  {
-    id: "departments",
-    label: "Departments",
-    href: "/departments",
-    roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN"],
   }
 ];
 
@@ -82,9 +70,7 @@ export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> =
   dashboard: Home,
   applicationForm: FileText,
   applicationsHistory: History,
-  userManagement: Users,
+  importHistory: History,
+  distributionLevel: Layers,
   profile: User,
-  finance: DollarSign,
-  hr: Users,
-  departments: Layers,
 };
