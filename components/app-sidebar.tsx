@@ -61,7 +61,7 @@ function AppLogo() {
     <SidebarMenu>
       <SidebarMenuItem>
         <SidebarMenuButton size="lg" className="hover:bg-transparent pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-          <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-transparent">
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent">
             <Image src={logo} alt="BhumiSaara" className="size-full object-contain" priority />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
@@ -89,7 +89,6 @@ function NavMain({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           item.items && item.items.length > 0 ? (
@@ -258,7 +257,6 @@ export function AppSidebar({
       <SidebarFooter>
         <NavUser user={navUser} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }
