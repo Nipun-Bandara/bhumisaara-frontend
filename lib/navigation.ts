@@ -21,15 +21,27 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN", "AGRARIAN_SERVICE_OFFICER", "FARMER", "PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
   },
   {
-    id: "user-management",
+    id: "applicationForm",
+    label: "Application Form",
+    href: "/application-form",
+    roles: ["FARMER"],
+  },
+  {
+    id: "applicationsHistory",
+    label: "Applications History",
+    href: "/applications-history",
+    roles: ["FARMER"],
+  },
+  {
+    id: "userManagement",
     label: "User Management",
     href: "/user-management",
     roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN"],
   },
   {
-    id: "settings",
-    label: "Settings",
-    href: "/settings",
+    id: "profile",
+    label: "Profile",
+    href: "/profile",
     roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN", "AGRARIAN_SERVICE_OFFICER", "FARMER", "PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
   },
   {
@@ -49,13 +61,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Departments",
     href: "/departments",
     roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN"],
-  },
-  {
-    id: "logout",
-    label: "Logout",
-    href: "/auth",
-    roles: ["SYSTEM_ADMIN", "GOVERNMENT_ADMIN", "AGRARIAN_SERVICE_OFFICER", "FARMER", "PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
-  },
+  }
 ];
 
 /**
@@ -69,16 +75,16 @@ export function getNavItemsForRoles(userRoles: Role[] | string[]): NavItem[] {
 
 export default NAV_ITEMS;
 
-import { Home, User, Settings, DollarSign, Users, Layers, LogOut } from "lucide-react";
+import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   dashboard: Home,
-  "user-management": Users,
+  applicationForm: FileText,
+  applicationsHistory: History,
+  userManagement: Users,
   profile: User,
-  settings: Settings,
   finance: DollarSign,
   hr: Users,
   departments: Layers,
-  logout: LogOut,
 };
