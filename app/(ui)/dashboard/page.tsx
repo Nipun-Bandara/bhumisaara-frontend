@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import FarmerDashboard from "@/components/farmer/FarmerDashboard";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -35,17 +36,7 @@ export default function DashboardPage() {
 }
 
 // Inline role-specific components (to avoid creating many files right now)
-function FarmerDashboard() {
-  return (
-    <div className="p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Farmer Dashboard</h1>
-      <div className="p-6 bg-card text-card-foreground shadow-sm rounded-xl ">
-        <h2 className="text-xl font-semibold mb-2">Digital Passbook</h2>
-        <p className="text-base text-muted-foreground">View your fertilizer quotas and subsidy tokens.</p>
-      </div>
-    </div>
-  );
-}
+
 
 function AdminDashboard() {
   return (
