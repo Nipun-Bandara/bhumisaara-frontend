@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -28,8 +28,8 @@ export default function DashboardPage() {
   // Fallback
   return (
     <div className="p-8 space-y-6">
-      <h1 className="font-headline-lg text-headline-lg text-on-surface">Welcome to PohoraChain</h1>
-      <p className="font-body-md text-on-surface-variant">Your role is not recognized yet.</p>
+      <h1 className="text-3xl font-bold text-foreground">Welcome to PohoraChain</h1>
+      <p className="text-base text-muted-foreground">Your role is not recognized yet.</p>
     </div>
   );
 }
@@ -38,10 +38,10 @@ export default function DashboardPage() {
 function FarmerDashboard() {
   return (
     <div className="p-8 space-y-6">
-      <h1 className="font-headline-lg text-headline-lg text-on-surface">Farmer Dashboard</h1>
-      <div className="p-6 bg-surface-container rounded-xl border border-outline-variant">
-        <h2 className="font-title-md text-title-md text-on-surface mb-2">Digital Passbook</h2>
-        <p className="font-body-md text-on-surface-variant">View your fertilizer quotas and subsidy tokens.</p>
+      <h1 className="text-3xl font-bold text-foreground">Farmer Dashboard</h1>
+      <div className="p-6 bg-card text-card-foreground shadow-sm rounded-xl ">
+        <h2 className="text-xl font-semibold mb-2">Digital Passbook</h2>
+        <p className="text-base text-muted-foreground">View your fertilizer quotas and subsidy tokens.</p>
       </div>
     </div>
   );
@@ -50,10 +50,10 @@ function FarmerDashboard() {
 function AdminDashboard() {
   return (
     <div className="p-8 space-y-6">
-      <h1 className="font-headline-lg text-headline-lg text-on-surface">Admin Dashboard</h1>
-      <div className="p-6 bg-surface-container rounded-xl border border-outline-variant">
-        <h2 className="font-title-md text-title-md text-on-surface mb-2">National Inventory</h2>
-        <p className="font-body-md text-on-surface-variant">Audit real-time tracking across all agrarian centers.</p>
+      <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+      <div className="p-6 bg-card text-card-foreground shadow-sm rounded-xl">
+        <h2 className="text-xl font-semibold mb-2">National Inventory</h2>
+        <p className="text-base text-muted-foreground">Audit real-time tracking across all agrarian centers.</p>
       </div>
     </div>
   );
@@ -62,10 +62,10 @@ function AdminDashboard() {
 function DealerDashboard() {
   return (
     <div className="p-8 space-y-6">
-      <h1 className="font-headline-lg text-headline-lg text-on-surface">Agro-Dealer Portal</h1>
-      <div className="p-6 bg-surface-container rounded-xl border border-outline-variant">
-        <h2 className="font-title-md text-title-md text-on-surface mb-2">Stock Management</h2>
-        <p className="font-body-md text-on-surface-variant">Manage incoming shipments and farmer distributions.</p>
+      <h1 className="text-3xl font-bold text-foreground">Agro-Dealer Portal</h1>
+      <div className="p-6 bg-card text-card-foreground shadow-sm rounded-xl">
+        <h2 className="text-xl font-semibold mb-2">Stock Management</h2>
+        <p className="text-base text-muted-foreground">Manage incoming shipments and farmer distributions.</p>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import React from "react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { cn } from "@/app/lib/utils";
+import { cn } from "@/lib/utils";
 
 
 export const ThemeToggle = ({ className }: { className?: string }) => {
@@ -20,7 +20,7 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
       onClick={(e) => {
         const newTheme = resolvedTheme === "dark" ? "light" : "dark";
 
-       
+
         if (!document.startViewTransition) {
           setTheme(newTheme);
           return;

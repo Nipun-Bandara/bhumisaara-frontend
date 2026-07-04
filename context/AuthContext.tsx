@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Role } from "@/app/lib/navigation";
+import { Role } from "@/lib/navigation";
 
 interface LoginRequest {
   email: string;

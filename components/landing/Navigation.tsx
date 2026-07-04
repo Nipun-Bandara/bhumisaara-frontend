@@ -11,8 +11,8 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "../ui/Button";
-import { ThemeToggle } from "../ui/ThemeToggle";
+import { Button } from "../ui/button";
+import { ThemeToggle } from "../ThemeToggle";
 
 const navItems = [
   { name: "About", href: "#about" },

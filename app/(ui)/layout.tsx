@@ -1,15 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
-import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/app/components/ui/Sidebar";
-import { getNavItemsForRoles, ICONS_MAP } from "@/app/lib/navigation";
-import { cn } from "@/app/lib/utils";
-import Link from "next/link";
-import Image from "next/image";
-import { ThemeToggle } from "../components/ui/ThemeToggle";
-import { Loader } from "../components/ui/Loader";
+import { useAuth } from "@/context/AuthContext";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Loader } from "@/components/Loader";
 import { useEffect } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function DashboardLayout({
     children,
@@ -29,103 +26,30 @@ export default function DashboardLayout({
         return null;
     }
 
-    // compute nav items for the user based on roles
-    const rawNav = getNavItemsForRoles(user?.roles || []);
-
-    const links = rawNav.map((item) => {
-        const IconComp = ICONS_MAP[item.id] ?? ICONS_MAP.dashboard;
-        return {
-            label: item.label,
-            href: item.href,
-            icon: <IconComp className="h-5 w-5 shrink-0 text-on-surface" />,
-        };
-    });
-
     return (
-        <div className={cn(
-            "flex h-screen w-full max-w-full flex-col overflow-hidden md:flex-row bg-background text-on-background"
-        )}>
-            <Sidebar>
-                <SidebarContent user={user} links={links} />
-            </Sidebar>
-            <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+        <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
                 {isLoading ? (
-                    <div className="flex h-full w-full items-center justify-center">
+                    <div className="flex h-full w-full items-center justify-center min-h-screen">
                         <Loader />
                     </div>
                 ) : (
-                    children
+                    <>
+                        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-sidebar-border">
+                            <div className="flex items-center gap-2 px-4 w-full">
+                                <SidebarTrigger className="-ml-1" />
+                                <div className="ml-auto">
+                                    <ThemeToggle />
+                                </div>
+                            </div>
+                        </header>
+                        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background text-foreground">
+                            {children}
+                        </main>
+                    </>
                 )}
-            </div>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }
-
-interface Link {
-    label: string;
-    href: string;
-    icon: React.JSX.Element | React.ReactNode;
-}
-
-interface SidebarContentProps {
-    user: any;
-    links: Link[];
-}
-
-const SidebarContent = ({ user, links }: SidebarContentProps) => {
-    const { open } = useSidebar();
-
-    return (
-        <SidebarBody className="h-full justify-between gap-10">
-            <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-                {open ? (
-                    <Logo />
-                ) : (
-                    <div className="px-1">
-                        <ThemeToggle className="h-5 w-5 rounded-md" />
-                    </div>
-                )}
-                <div className="mt-8 flex flex-col gap-2">
-                    {links.map((link, idx) => (
-                        <SidebarLink key={link.href} link={link} />
-                    ))}
-                </div>
-            </div>
-            <div className="mt-auto pt-6">
-                {user && (
-                    <SidebarLink
-                        link={{
-                            label: user.username || "User",
-                            href: "/dashboard/profile",
-                            icon: (
-                                <img
-                                    src={"https://assets.aceternity.com/manu.png"}
-                                    className="h-7 w-7 shrink-0 rounded-full"
-                                    width={50}
-                                    height={50}
-                                    alt="Avatar"
-                                />
-                            ),
-                        }}
-                    />
-                )}
-            </div>
-        </SidebarBody>
-    );
-};
-
-const Logo = () => {
-    return (
-        <div className="flex justify-between items-center gap-2">
-            <Link className="font-clash-display" href="/dashboard">
-                <Image
-                    src="/logo.svg"
-                    alt="PohoraChain"
-                    width={80}
-                    height={80}
-                />
-            </Link>
-            <ThemeToggle />
-        </div>
-    );
-};
