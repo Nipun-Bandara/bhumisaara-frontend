@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import FarmerProfile from "@/components/farmer/FarmerProfile";
 import GovermentProfile from "@/components/goverment/GovermentProfile";
 import AgrarianProfile from "@/components/agrarian-officer/AgrarianProfile";
+import DealerProfile from "@/components/private-dealer/DealerProfile";
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
@@ -54,13 +55,4 @@ function AdminProfile() {
   );
 }
 
-function DealerProfile() {
-  return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
-      <h1 className="text-3xl font-bold text-foreground">Dealer Profile</h1>
-      <div className="p-6 bg-card border border-border shadow-sm rounded-xl">
-        <p className="text-base text-muted-foreground">Agro-dealer profile details coming soon.</p>
-      </div>
-    </div>
-  );
-}
+
