@@ -5,6 +5,7 @@ import FarmerDashboard from "@/components/farmer/FarmerDashboard";
 import GovermentDashboard from "@/components/goverment/GovermentDashboard";
 import AgrarianDashboard from "@/components/agrarian-officer/AgrarianDashboard";
 import DealerDashboard from "@/components/private-dealer/DealerDashboard";
+import OrganicProducerDashboard from "@/components/organic-producer/OrganicProducerDashboard";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -32,6 +33,10 @@ export default function DashboardPage() {
 
   if (user?.roles.includes("PRIVATE_AGRO_DEALER")) {
     return <DealerDashboard />;
+  }
+
+  if (user?.roles.includes("ORGANIC_FERTILIZER_PRODUCER")) {
+    return <OrganicProducerDashboard />;
   }
 
   // Fallback
