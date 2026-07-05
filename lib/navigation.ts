@@ -33,6 +33,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["FARMER"],
   },
   {
+    id: "ownDistribution",
+    label: "Own Distribution",
+    href: "/own-distribution",
+    roles: ["AGRARIAN_SERVICE_OFFICER"],
+  },
+  {
     id: "distributionLevel",
     label: "Distribution Level",
     href: "/distribution-level",
@@ -72,5 +78,6 @@ export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> =
   applicationsHistory: History,
   importHistory: History,
   distributionLevel: Layers,
+  ownDistribution: History,  
   profile: User,
 };
