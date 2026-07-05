@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import FarmerDashboard from "@/components/farmer/FarmerDashboard";
 import GovermentDashboard from "@/components/goverment/GovermentDashboard";
 import AgrarianDashboard from "@/components/agrarian-officer/AgrarianDashboard";
+import DealerDashboard from "@/components/private-dealer/DealerDashboard";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -57,14 +58,4 @@ function AdminDashboard() {
   );
 }
 
-function DealerDashboard() {
-  return (
-    <div className="p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Agro-Dealer Portal</h1>
-      <div className="p-6 bg-card text-card-foreground shadow-sm rounded-xl">
-        <h2 className="text-xl font-semibold mb-2">Stock Management</h2>
-        <p className="text-base text-muted-foreground">Manage incoming shipments and farmer distributions.</p>
-      </div>
-    </div>
-  );
-}
+
