@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import FarmerDashboard from "@/components/farmer/FarmerDashboard";
 import GovermentDashboard from "@/components/goverment/GovermentDashboard";
+import AgrarianDashboard from "@/components/agrarian-officer/AgrarianDashboard";
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -22,6 +23,10 @@ export default function DashboardPage() {
 
   if (user?.roles.includes("GOVERNMENT_ADMIN")) {
     return <GovermentDashboard />;
+  }
+
+  if (user?.roles.includes("AGRARIAN_SERVICE_OFFICER")) {
+    return <AgrarianDashboard />;
   }
 
   if (user?.roles.includes("PRIVATE_AGRO_DEALER")) {
