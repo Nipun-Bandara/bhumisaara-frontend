@@ -5,6 +5,7 @@ import FarmerDashboard from "@/components/farmer/FarmerDashboard";
 import GovermentDashboard from "@/components/goverment/GovermentDashboard";
 import AgrarianDashboard from "@/components/agrarian-officer/AgrarianDashboard";
 import DealerDashboard from "@/components/private-dealer/DealerDashboard";
+import OrganicProducerDashboard from "@/components/organic-producer/OrganicProducerDashboard";
 
 
 export default function DashboardPage() {
@@ -35,9 +36,9 @@ export default function DashboardPage() {
     return <DealerDashboard />;
   }
 
-  // if (user?.role === "ORGANIC_FERTILIZER_PRODUCER") {
-  //   return <OrganicProducerDashboard />;
-  // }
+  if (user?.roles.includes("ORGANIC_FERTILIZER_PRODUCER")) {
+    return <OrganicProducerDashboard />;
+  }
 
   // Fallback
   return (

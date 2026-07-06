@@ -5,6 +5,7 @@ import FarmerProfile from "@/components/farmer/FarmerProfile";
 import GovermentProfile from "@/components/goverment/GovermentProfile";
 import AgrarianProfile from "@/components/agrarian-officer/AgrarianProfile";
 import DealerProfile from "@/components/private-dealer/DealerProfile";
+import OrganicProducerProfile from "@/components/organic-producer/OrganicProducerProfile";
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
@@ -34,9 +35,9 @@ export default function ProfilePage() {
     return <DealerProfile />;
   }
 
-  // if (user?.role === "ORGANIC_FERTILIZER_PRODUCER") {
-  //   return <OrganicProducerProfile />;
-  // }
+  if (user?.roles.includes("ORGANIC_FERTILIZER_PRODUCER")) {
+    return <OrganicProducerProfile />;
+  }
 
   // Fallback
   return (
