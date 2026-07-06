@@ -43,7 +43,7 @@ export default function DashboardPage() {
   // Fallback
   return (
     <div className="p-8 space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Welcome to PohoraChain</h1>
+      <h1 className="text-3xl font-bold text-foreground">Welcome toBhumiSaara</h1>
       <p className="text-base text-muted-foreground">Your role is not recognized yet.</p>
     </div>
   );
