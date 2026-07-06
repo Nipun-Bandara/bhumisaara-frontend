@@ -8,7 +8,7 @@ export default function OwnDistributionPage() {
 
   if (isLoading) return null;
 
-  if (user?.roles.includes("AGRARIAN_SERVICE_OFFICER")) {
+  if (user?.role === "AGRARIAN_SERVICE_OFFICER") {
     return <OwnDistribution />;
   }
 

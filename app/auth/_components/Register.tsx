@@ -29,34 +29,35 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
   const formik = useFormik({
     initialValues: {
       email: "",
-      username: "",
+      userName: "",
       password: "",
       confirmPassword: "",
-      firstName: "",
-      lastName: "",
       role: "FARMER",
     },
     validationSchema: Yup.object({
       email: Yup.string().email("Invalid email address").required("Required"),
-      username: Yup.string().required("Required"),
+      userName: Yup.string().required("Required"),
       password: Yup.string()
         .min(4, "Must be at least 4 characters")
         .required("Required"),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password'), undefined], 'Passwords must match')
         .required('Required'),
-      firstName: Yup.string().required("Required"),
-      lastName: Yup.string().required("Required"),
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
       setServerError(null);
       try {
-        await register(values);
+        await register({
+          email: values.email,
+          userName: values.userName,
+          password: values.password,
+          role: values.role
+        });
         toast.success("Account created successfully!");
       } catch (error: any) {
         setServerError(
-          error?.message || "An unexpected error occurred. Please try again."
+          error?.response?.data?.message || error?.message || "An unexpected error occurred. Please try again."
         );
       }
     },
@@ -115,15 +116,15 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                 </div>
                 <Input
                   type="text"
-                  {...formik.getFieldProps("username")}
+                  {...formik.getFieldProps("userName")}
                   className="pl-10 h-10"
-                  aria-invalid={!!(formik.touched.username && formik.errors.username)}
+                  aria-invalid={!!(formik.touched.userName && formik.errors.userName)}
                   placeholder="Enter username"
                 />
               </div>
-              {formik.touched.username && formik.errors.username ? (
+              {formik.touched.userName && formik.errors.userName ? (
                 <div className="text-destructive text-xs mt-1">
-                  {formik.errors.username}
+                  {formik.errors.userName}
                 </div>
               ) : null}
             </div>

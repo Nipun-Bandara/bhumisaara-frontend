@@ -14,25 +14,29 @@ export default function ProfilePage() {
   }
 
   // Switchboard pattern: Render completely different trees based on role
-  if (user?.roles.includes("FARMER")) {
+  if (user?.role === "FARMER") {
     return <FarmerProfile />;
   }
 
-  if (user?.roles.includes("SYSTEM_ADMIN")) {
+  if (user?.role === "SYSTEM_ADMIN") {
     return <AdminProfile />;
   }
 
-  if (user?.roles.includes("GOVERNMENT_ADMIN")) {
+  if (user?.role === "GOVERNMENT_ADMIN") {
     return <GovermentProfile />;
   }
 
-  if (user?.roles.includes("AGRARIAN_SERVICE_OFFICER")) {
+  if (user?.role === "AGRARIAN_SERVICE_OFFICER") {
     return <AgrarianProfile />;
   }
 
-  if (user?.roles.includes("PRIVATE_AGRO_DEALER")) {
+  if (user?.role === "PRIVATE_AGRO_DEALER") {
     return <DealerProfile />;
   }
+
+  // if (user?.role === "ORGANIC_FERTILIZER_PRODUCER") {
+  //   return <OrganicProducerProfile />;
+  // }
 
   // Fallback
   return (
