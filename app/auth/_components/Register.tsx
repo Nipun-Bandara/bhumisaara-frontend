@@ -29,20 +29,16 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
   const formik = useFormik({
     initialValues: {
       email: "",
-      userName: "",
+      username: "",
       password: "",
-      confirmPassword: "",
-      role: "FARMER",
+      role: "",
     },
     validationSchema: Yup.object({
       email: Yup.string().email("Invalid email address").required("Required"),
-      userName: Yup.string().required("Required"),
+      username: Yup.string().required("Required"),
       password: Yup.string()
         .min(4, "Must be at least 4 characters")
         .required("Required"),
-      confirmPassword: Yup.string()
-        .oneOf([Yup.ref('password'), undefined], 'Passwords must match')
-        .required('Required'),
       role: Yup.string().required("Required"),
     }),
     onSubmit: async (values) => {
@@ -50,7 +46,7 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
       try {
         await register({
           email: values.email,
-          userName: values.userName,
+          username: values.username,
           password: values.password,
           role: values.role
         });
@@ -116,15 +112,15 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                 </div>
                 <Input
                   type="text"
-                  {...formik.getFieldProps("userName")}
+                  {...formik.getFieldProps("username")}
                   className="pl-10 h-10"
-                  aria-invalid={!!(formik.touched.userName && formik.errors.userName)}
+                  aria-invalid={!!(formik.touched.username && formik.errors.username)}
                   placeholder="Enter username"
                 />
               </div>
-              {formik.touched.userName && formik.errors.userName ? (
+              {formik.touched.username && formik.errors.username ? (
                 <div className="text-destructive text-xs mt-1">
-                  {formik.errors.userName}
+                  {formik.errors.username}
                 </div>
               ) : null}
             </div>

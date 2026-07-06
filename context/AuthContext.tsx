@@ -13,7 +13,7 @@ interface LoginRequest {
 
 interface RegisterPayload {
   email: string;
-  userName: string;
+  username: string;
   password: string;
   role: string;
 }

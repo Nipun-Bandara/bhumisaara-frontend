@@ -27,7 +27,7 @@ export default function AuthContainer() {
   const dotGridBaseColor = mounted && resolvedTheme === 'dark' ? '#2F293A' : '#dddcddff';
 
   return (
-    <div className=" w-full bg-background flex flex-col lg:flex-row relative text-foreground">
+    <div className="w-full min-h-screen bg-background flex flex-col lg:flex-row relative text-foreground">
       <Link
         href="/"
         className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted transition-colors bg-secondary rounded-lg hover:text-foreground hover:bg-secondary/80 backdrop-blur-sm"
@@ -59,6 +59,7 @@ export default function AuthContainer() {
         {/* Background Grid/Pattern */}
         <div className="absolute inset-0 opacity-50 pointer-events-none">
           <DotGrid
+            style={{ position: "absolute" }}
             dotSize={5}
             gap={15}
             baseColor={dotGridBaseColor}
@@ -77,8 +78,8 @@ export default function AuthContainer() {
           </h2>
           <p className="text-muted-foreground max-w-sm px-8">
             {isSignup
-              ? "If you already have a PohoraChain account, sign in to continue managing your allocations."
-              : "Create your PohoraChain account to access smart quotas, tracking, and the green market."}
+              ? "If you already have a BhumiSaara account, sign in to continue managing your allocations."
+              : "Create your BhumiSaara account to access smart quotas, tracking, and the green market."}
           </p>
           <Button
             onClick={() => setIsSignup(!isSignup)}
