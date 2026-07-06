@@ -3,19 +3,18 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Role } from "@/lib/navigation";
+import { api } from "@/lib/api";
+import { API_PATHS } from "@/lib/api-paths";
 
 interface LoginRequest {
   email: string;
   password: string;
-  role?: string;
 }
 
 interface RegisterPayload {
   email: string;
+  userName: string;
   password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
   role: string;
 }
 
@@ -23,7 +22,7 @@ interface AuthUser {
   id: string;
   email: string;
   username: string;
-  roles: Role[];
+  role: Role | null;
   isBanned: boolean;
 }
 
@@ -41,13 +40,13 @@ const mapSessionToUser = (data: {
   userId: number;
   email: string;
   username: string;
-  roles: string[];
+  role: string;
   isBanned: boolean;
 }): AuthUser => ({
   id: String(data.userId),
   email: data.email,
   username: data.username,
-  roles: (data.roles ?? []) as Role[],
+  role: data.role ? (data.role as Role) : null,
   isBanned: data.isBanned,
 });
 
@@ -60,61 +59,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const raw = localStorage.getItem("user");
       if (raw) {
-        const parsed = JSON.parse(raw) as {
-          userId: number;
-          email: string;
-          username: string;
-          roles: string[];
-          isBanned: boolean;
-        };
+        const parsed = JSON.parse(raw);
         setUser(mapSessionToUser(parsed));
       }
+    } catch (e) {
+      console.error("Failed to parse user from local storage", e);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const login = async (credentials: LoginRequest) => {
-    // MOCK IMPLEMENTATION (Wait 1s)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Simulate successful response
-    const mockData = {
-      userId: 1,
-      email: credentials.email,
-      username: credentials.email.split("@")[0],
-      roles: [credentials.role || "FARMER"], // Use selected role or fallback to FARMER
-      isBanned: false,
-    };
-
-    localStorage.setItem("user", JSON.stringify(mockData));
-    localStorage.setItem("token", "mock-jwt-token");
-    setUser(mapSessionToUser(mockData));
+    const response = await api.post(API_PATHS.auth.login, credentials);
+    const data = response.data;
+    
+    localStorage.setItem("user", JSON.stringify(data));
+    localStorage.setItem("token", data.token);
+    if (data.refreshToken) {
+      localStorage.setItem("refreshToken", data.refreshToken);
+    }
+    
+    setUser(mapSessionToUser(data));
     router.push("/dashboard");
   };
 
   const register = async (payload: RegisterPayload) => {
-    // MOCK IMPLEMENTATION (Wait 1s)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Simulate successful response
-    const mockData = {
-      userId: Math.floor(Math.random() * 1000) + 1,
-      email: payload.email,
-      username: payload.username,
-      roles: [payload.role || "FARMER"],
-      isBanned: false,
-    };
-
-    localStorage.setItem("user", JSON.stringify(mockData));
-    localStorage.setItem("token", "mock-jwt-token");
-    setUser(mapSessionToUser(mockData));
+    const response = await api.post(API_PATHS.auth.register, payload);
+    const data = response.data;
+    
+    localStorage.setItem("user", JSON.stringify(data));
+    localStorage.setItem("token", data.token);
+    if (data.refreshToken) {
+      localStorage.setItem("refreshToken", data.refreshToken);
+    }
+    
+    setUser(mapSessionToUser(data));
     router.push("/dashboard");
   };
 
   const logout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
     router.push("/auth");
   };

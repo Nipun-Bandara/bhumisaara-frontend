@@ -7,6 +7,7 @@ import AgrarianDashboard from "@/components/agrarian-officer/AgrarianDashboard";
 import DealerDashboard from "@/components/private-dealer/DealerDashboard";
 import OrganicProducerDashboard from "@/components/organic-producer/OrganicProducerDashboard";
 
+
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
 
@@ -15,23 +16,23 @@ export default function DashboardPage() {
   }
 
   // Switchboard pattern: Render completely different trees based on role
-  if (user?.roles.includes("FARMER")) {
+  if (user?.role === "FARMER") {
     return <FarmerDashboard />;
   }
 
-  if (user?.roles.includes("SYSTEM_ADMIN")) {
+  if (user?.role === "SYSTEM_ADMIN") {
     return <AdminDashboard />;
   }
 
-  if (user?.roles.includes("GOVERNMENT_ADMIN")) {
+  if (user?.role === "GOVERNMENT_ADMIN") {
     return <GovermentDashboard />;
   }
 
-  if (user?.roles.includes("AGRARIAN_SERVICE_OFFICER")) {
+  if (user?.role === "AGRARIAN_SERVICE_OFFICER") {
     return <AgrarianDashboard />;
   }
 
-  if (user?.roles.includes("PRIVATE_AGRO_DEALER")) {
+  if (user?.role === "PRIVATE_AGRO_DEALER") {
     return <DealerDashboard />;
   }
 

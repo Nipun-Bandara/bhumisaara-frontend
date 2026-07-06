@@ -26,12 +26,10 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
     initialValues: {
       email: '',
       password: '',
-      role: 'FARMER',
     },
     validationSchema: Yup.object({
       email: Yup.string().email('Invalid email address').required('Required'),
       password: Yup.string().required('Required'),
-      role: Yup.string().required('Required'),
     }),
     onSubmit: async (values) => {
       setServerError(null);
@@ -39,7 +37,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
         await login(values);
         toast.success('Logged in successfully!');
       } catch (error: any) {
-        setServerError(error?.message || 'An unexpected error occurred. Please try again.');
+        setServerError(error?.response?.data?.message || error?.message || 'An unexpected error occurred. Please try again.');
       }
     },
   });
@@ -113,32 +111,7 @@ export default function Login({ onSwitchToSignup }: LoginProps) {
               ) : null}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Role (Mock Testing)
-              </label>
-              <div className="relative group">
-                <Select
-                  value={formik.values.role}
-                  onValueChange={(val) => formik.setFieldValue('role', val)}
-                >
-                  <SelectTrigger className={`w-full ${formik.touched.role && formik.errors.role ? 'border-destructive focus-visible:ring-destructive focus-visible:ring-offset-2' : ''}`}>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FARMER">Farmer</SelectItem>
-                    <SelectItem value="SYSTEM_ADMIN">System Admin</SelectItem>
-                    <SelectItem value="GOVERNMENT_ADMIN">Government Admin</SelectItem>
-                    <SelectItem value="AGRARIAN_SERVICE_OFFICER">Agrarian Service Officer</SelectItem>
-                    <SelectItem value="PRIVATE_AGRO_DEALER">Private Agro Dealer</SelectItem>
-                    <SelectItem value="ORGANIC_FERTILIZER_PRODUCER">Organic Fertilizer Producer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {formik.touched.role && formik.errors.role ? (
-                <div className="text-destructive text-xs mt-1">{formik.errors.role}</div>
-              ) : null}
-            </div>
+
           </div>
 
           <div className="flex items-center justify-between text-sm">

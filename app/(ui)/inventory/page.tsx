@@ -8,7 +8,7 @@ export default function InventoryPage() {
 
   if (isLoading) return null;
 
-  if (user?.roles.includes("PRIVATE_AGRO_DEALER")) {
+  if (user?.role === "PRIVATE_AGRO_DEALER") {
     return <DealerInventory />;
   }
 
