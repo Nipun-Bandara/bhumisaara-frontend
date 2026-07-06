@@ -51,7 +51,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/context/AuthContext"
-import { getNavItemsForRoles, ICONS_MAP } from "@/lib/navigation"
+import { getNavItemsForRole, ICONS_MAP } from "@/lib/navigation"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
@@ -219,7 +219,7 @@ export function AppSidebar({
   const { user } = useAuth()
   const pathname = usePathname()
 
-  const rawNav = getNavItemsForRoles(user?.roles || [])
+  const rawNav = getNavItemsForRole(user?.role)
 
   // Transform the actual app navigation to match the demo's NavMain structure
   const navMain = rawNav.map((item) => {

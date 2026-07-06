@@ -65,12 +65,11 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
- * Returns the navigation items that the user with the given roles should see.
- * Accepts an array of roles (strings) and returns unique NavItem entries.
+ * Returns the navigation items that the user with the given role should see.
  */
-export function getNavItemsForRoles(userRoles: Role[] | string[]): NavItem[] {
-  const roleSet = new Set((userRoles || []).map((r) => String(r)));
-  return NAV_ITEMS.filter((item) => item.roles.some((r) => roleSet.has(r)));
+export function getNavItemsForRole(userRole: Role | string | null | undefined): NavItem[] {
+  if (!userRole) return [];
+  return NAV_ITEMS.filter((item) => item.roles.includes(userRole as Role));
 }
 
 export default NAV_ITEMS;

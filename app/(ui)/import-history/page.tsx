@@ -8,7 +8,7 @@ export default function ImportHistoryPage() {
 
   if (isLoading) return null;
 
-  if (user?.roles.includes("GOVERNMENT_ADMIN")) {
+  if (user?.role === "GOVERNMENT_ADMIN") {
     return <ImportHistory />;
   }
 
