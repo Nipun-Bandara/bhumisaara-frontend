@@ -17,61 +17,30 @@ import {
 } from "@/components/ui/table";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useReadContract } from "thirdweb/react";
+import { getNFTs } from "thirdweb/extensions/erc1155";
+import { contract } from "@/lib/contract";
 
 type ImportRecord = {
   id: string;
-  date: string;
-  importer: string;
-  fertilizerType: string;
-  volume: number;
-  status: "Cleared" | "In Transit" | "Processing";
+  name: string;
+  description: string;
+  volume: string;
+  status: string;
 };
 
-const data: ImportRecord[] = [
-  {
-    id: "IMP-2023-091",
-    date: "2023-11-20",
-    importer: "Ceylon AgriCorp",
-    fertilizerType: "Urea",
-    volume: 50000,
-    status: "Cleared",
-  },
-  {
-    id: "IMP-2023-092",
-    date: "2023-11-22",
-    importer: "GlobalFert Holdings",
-    fertilizerType: "TSP",
-    volume: 15000,
-    status: "In Transit",
-  },
-  {
-    id: "IMP-2023-093",
-    date: "2023-11-25",
-    importer: "Lanka Agro Supplies",
-    fertilizerType: "MOP",
-    volume: 8000,
-    status: "Processing",
-  }
-];
-
 const columns: ColumnDef<ImportRecord>[] = [
-  { accessorKey: "id", header: "Import ID" },
-  { accessorKey: "date", header: "Date" },
-  { accessorKey: "importer", header: "Importer" },
-  { accessorKey: "fertilizerType", header: "Type" },
-  { accessorKey: "volume", header: "Volume (MT)" },
+  { accessorKey: "id", header: "Token ID" },
+  { accessorKey: "name", header: "Batch Name" },
+  { accessorKey: "description", header: "Description" },
+  { accessorKey: "volume", header: "Volume (KG)" },
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      let colorClass = "bg-secondary text-secondary-foreground";
-      if (status === "Cleared") colorClass = "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400";
-      if (status === "In Transit") colorClass = "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-400";
-      if (status === "Processing") colorClass = "bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-400";
+    cell: () => {
       return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
-          {status}
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400">
+          Minted on Chain
         </span>
       );
     },
@@ -79,6 +48,18 @@ const columns: ColumnDef<ImportRecord>[] = [
 ];
 
 export default function ImportHistory() {
+  const { data: nfts = [], isLoading } = useReadContract(getNFTs, { contract });
+
+  const data = React.useMemo(() => {
+    return nfts.map(nft => ({
+      id: `TK-${nft.id.toString()}`,
+      name: nft.metadata?.name || "Unknown Batch",
+      description: nft.metadata?.description || "No description",
+      volume: nft.supply.toString(),
+      status: "Minted",
+    }));
+  }, [nfts]);
+
   const table = useReactTable({
     data,
     columns,
@@ -115,7 +96,13 @@ export default function ImportHistory() {
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                      Loading blockchain history...
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow key={row.id} className="border-border hover:bg-muted/30 transition-colors">
                       {row.getVisibleCells().map((cell) => (

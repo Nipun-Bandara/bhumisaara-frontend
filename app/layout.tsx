@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "../context/AuthContext";
+import { ThirdwebProvider } from "thirdweb/react";
 
 const playfairDisplayHeading = Playfair_Display({ subsets: ['latin'], variable: '--font-heading' });
 
@@ -48,7 +49,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Toaster />
+          <ThirdwebProvider>
           <AuthProvider>{children}</AuthProvider>
+          </ThirdwebProvider>
         </ThemeProvider>
       </body>
     </html>

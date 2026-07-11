@@ -36,7 +36,7 @@ export default function DashboardPage() {
     return <DealerDashboard />;
   }
 
-  if (user?.roles.includes("ORGANIC_FERTILIZER_PRODUCER")) {
+  if (user?.role === "ORGANIC_FERTILIZER_PRODUCER") {
     return <OrganicProducerDashboard />;
   }
 
