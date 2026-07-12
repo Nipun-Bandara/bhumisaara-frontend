@@ -7,12 +7,13 @@ import {
   useMotionValueEvent,
   useScroll,
 } from "motion/react";
-import { useTheme } from "next-themes";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "../ui/button";
-import { ThemeToggle } from "../ThemeToggle";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import logo from "@/app/public/logo.svg"
 
 const navItems = [
   { name: "About", href: "#about" },
@@ -25,15 +26,9 @@ export const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter(); // Initialize router
   const { scrollY } = useScroll();
-  const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -95,9 +90,7 @@ export const Navigation = () => {
             href="/"
             className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2"
           >
-            <span className="material-symbols-outlined" data-icon="agriculture">
-              agriculture
-            </span>
+            <Image src={logo} alt="BhumiSaara logo" width={32} height={32} />
             BhumiSaara
           </Link>
           <ul className="hidden font-body-md gap-6 text-sm sm:flex whitespace-nowrap px-16">
@@ -174,9 +167,7 @@ export const Navigation = () => {
                   href="/"
                   className="text-title-lg font-title-lg font-bold text-primary flex items-center gap-2"
                 >
-                  <span className="material-symbols-outlined" data-icon="agriculture">
-                    agriculture
-                  </span>
+                  <Image src={logo} alt="BhumiSaara logo" width={32} height={32} />
                   BhumiSaara
                 </Link>
                 <button
