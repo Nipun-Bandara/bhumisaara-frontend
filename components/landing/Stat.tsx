@@ -1,33 +1,32 @@
-"use client"
-
-import { useId } from "react";
+import { useId, ComponentProps } from "react";
+import { MapPin, Users, GraduationCap, Search } from "lucide-react";
 
 import CountUp from "./CountUp";
 
 export function Stat() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-gutter pb-stack-lg pt-16 md:pt-8 px-margin-mobile md:px-margin-desktop w-full max-w-container-max mx-auto">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 md:gap-2 pb-12 pt-0 sm:pt-0 md:pt-4 lg:pt-12 px-4 sm:px-6 md:px-12 lg:px-12 w-full max-w-7xl mx-auto">
       {stats.map((feature, idx) => (
         <div
           key={idx}
-          className="relative flex flex-col border border-border items-center justify-center bg-background p-3 sm:p-6 rounded-3xl overflow-hidden soft-bloom"
+          className="relative flex flex-col border border-border items-center justify-center bg-card p-3 sm:p-6 rounded-3xl overflow-hidden soft-bloom"
         >
           <Grid size={20} />
           <div className="relative z-20 mb-4 text-primary">
             {feature.icon}
           </div>
-          <div className="font-display-lg text-display-lg md:text-headline-lg lg:text-display-lg font-bold text-foreground relative z-20 flex items-center">
+          <div className="text-3xl font-bold text-foreground relative z-20 flex items-center">
             <CountUp
               from={0}
               to={feature.value}
               separator=","
               direction="up"
-              duration={1.5}
+              duration={1}
               className="count-up-text"
             />
             {feature.suffix}
           </div>
-          <p className="text-muted-foreground mt-2 font-body-md text-body-md relative z-20 text-center">
+          <p className="text-muted-foreground mt-2 text-base font-normal relative z-20 text-center">
             {feature.description}
           </p>
         </div>
@@ -74,44 +73,32 @@ export const Grid = ({
   pattern?: number[][];
   size?: number;
 }) => {
-  // Use a fixed pattern by default to avoid SSR hydration mismatches
   const p = pattern ?? [
-    [7, 1],
-    [8, 4],
-    [9, 2],
-    [10, 5],
-    [8, 6],
+    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
+    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
+    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
+    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
+    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
   ];
   return (
     <div className="pointer-events-none absolute left-1/2 top-0  -ml-20 -mt-2 h-full w-full [mask-image:linear-gradient(white,transparent)]">
-      <div className="absolute inset-0 bg-gradient-to-r [mask-image:radial-gradient(farthest-side_at_top,white,transparent)] dark:from-zinc-900/30 from-zinc-100/30 to-zinc-300/30 dark:to-zinc-900/30 opacity-100">
+      <div className="absolute inset-0 bg-gradient-to-r [mask-image:radial-gradient(farthest-side_at_top,white,transparent)] dark:from-muted/20 from-transparent to-transparent dark:to-muted/20 opacity-100">
         <GridPattern
           width={size ?? 20}
           height={size ?? 20}
           x="-12"
           y="4"
           squares={p}
-          className="absolute inset-0 h-full w-full dark:fill-white/20 dark:stroke-white/20 stroke-black/10 fill-black/10"
+          className="absolute inset-0 h-full w-full"
+          strokeClassName="stroke-border"
+          fillClassName="fill-border/50"
         />
       </div>
     </div>
   );
 };
 
-export function GridPattern({
-  width,
-  height,
-  x,
-  y,
-  squares,
-  ...props
-}: React.ComponentProps<"svg"> & {
-  width?: number;
-  height?: number;
-  x?: string | number;
-  y?: string | number;
-  squares?: number[][];
-}) {
+export function GridPattern({ width, height, x, y, squares, strokeClassName, fillClassName, ...props }: React.ComponentProps<"svg"> & { width?: number, height?: number, x?: string | number, y?: string | number, squares?: number[][], strokeClassName?: string, fillClassName?: string }) {
   const patternId = useId();
 
   return (
@@ -125,7 +112,7 @@ export function GridPattern({
           x={x}
           y={y}
         >
-          <path d={`M.5 ${height}V.5H${width}`} fill="none" />
+          <path d={`M.5 ${height}V.5H${width}`} fill="none" strokeWidth="1" className={strokeClassName} />
         </pattern>
       </defs>
       <rect
@@ -139,6 +126,7 @@ export function GridPattern({
           {squares.map(([x, y]: number[], idx: number) => (
             <rect
               strokeWidth="0"
+              className={fillClassName}
               key={`${x}-${y}-${idx}`}
               width={Number(width) + 1}
               height={Number(height) + 1}

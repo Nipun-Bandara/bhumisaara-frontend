@@ -24,16 +24,15 @@ export default function AuthContainer() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const dotGridBaseColor = mounted && resolvedTheme === 'dark' ? '#2F293A' : '#dddcddff';
+  const dotGridBaseColor = mounted && resolvedTheme === 'dark' ? '#2F293A' : '#ebeef0ff';
 
   return (
     <div className="w-full min-h-screen bg-background flex flex-col lg:flex-row relative text-foreground">
       <Link
         href="/"
-        className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted transition-colors bg-secondary rounded-lg hover:text-foreground hover:bg-secondary/80 backdrop-blur-sm"
+        className="top-4 left-4 z-50"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Home
+        <Button variant="link"><ArrowLeft className="w-4 h-4" />Back to Home</Button>
       </Link>
       {/* Form Container - Scrolls with page */}
       <div
