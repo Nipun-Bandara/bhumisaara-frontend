@@ -1,12 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
-import FarmerDashboard from "@/components/farmer/FarmerDashboard";
-import GovermentDashboard from "@/components/goverment/GovermentDashboard";
-import AgrarianDashboard from "@/components/agrarian-officer/AgrarianDashboard";
-import DealerDashboard from "@/components/private-dealer/DealerDashboard";
-import OrganicProducerDashboard from "@/components/organic-producer/OrganicProducerDashboard";
 
+// Each role's dashboard pulls in its own heavy, mutually-exclusive
+// dependencies (thirdweb SDK for Government, recharts for Dealer, etc.).
+// Loading them via next/dynamic keeps them in separate chunks so a given
+// user's first /dashboard compile only pays for the role they actually have.
+const FarmerDashboard = dynamic(() => import("@/components/farmer/FarmerDashboard"));
+const GovermentDashboard = dynamic(() => import("@/components/goverment/GovermentDashboard"));
+const AgrarianDashboard = dynamic(() => import("@/components/agrarian-officer/AgrarianDashboard"));
+const DealerDashboard = dynamic(() => import("@/components/private-dealer/DealerDashboard"));
+const OrganicProducerDashboard = dynamic(() => import("@/components/organic-producer/OrganicProducerDashboard"));
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -36,7 +41,7 @@ export default function DashboardPage() {
     return <DealerDashboard />;
   }
 
-  if (user?.roles.includes("ORGANIC_FERTILIZER_PRODUCER")) {
+  if (user?.role === "ORGANIC_FERTILIZER_PRODUCER") {
     return <OrganicProducerDashboard />;
   }
 

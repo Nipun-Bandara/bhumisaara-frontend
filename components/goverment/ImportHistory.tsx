@@ -17,68 +17,57 @@ import {
 } from "@/components/ui/table";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TxHashBadge from "./TxHashBadge";
+import { useMintedBatches } from "@/hooks/use-minted-batches";
 
 type ImportRecord = {
   id: string;
-  date: string;
-  importer: string;
-  fertilizerType: string;
-  volume: number;
-  status: "Cleared" | "In Transit" | "Processing";
+  name: string;
+  description: string;
+  volume: string;
+  status: string;
+  transactionHash?: string;
 };
 
-const data: ImportRecord[] = [
-  {
-    id: "IMP-2023-091",
-    date: "2023-11-20",
-    importer: "Ceylon AgriCorp",
-    fertilizerType: "Urea",
-    volume: 50000,
-    status: "Cleared",
-  },
-  {
-    id: "IMP-2023-092",
-    date: "2023-11-22",
-    importer: "GlobalFert Holdings",
-    fertilizerType: "TSP",
-    volume: 15000,
-    status: "In Transit",
-  },
-  {
-    id: "IMP-2023-093",
-    date: "2023-11-25",
-    importer: "Lanka Agro Supplies",
-    fertilizerType: "MOP",
-    volume: 8000,
-    status: "Processing",
-  }
-];
-
 const columns: ColumnDef<ImportRecord>[] = [
-  { accessorKey: "id", header: "Import ID" },
-  { accessorKey: "date", header: "Date" },
-  { accessorKey: "importer", header: "Importer" },
-  { accessorKey: "fertilizerType", header: "Type" },
-  { accessorKey: "volume", header: "Volume (MT)" },
+  { accessorKey: "id", header: "Token ID" },
+  { accessorKey: "name", header: "Batch Name" },
+  { accessorKey: "description", header: "Description" },
+  { accessorKey: "volume", header: "Volume (KG)" },
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      let colorClass = "bg-secondary text-secondary-foreground";
-      if (status === "Cleared") colorClass = "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400";
-      if (status === "In Transit") colorClass = "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-400";
-      if (status === "Processing") colorClass = "bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-blue-400";
+    cell: () => {
       return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
-          {status}
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400">
+          Minted on Chain
         </span>
       );
     },
   },
+  {
+    accessorKey: "transactionHash",
+    header: "Tx Hash",
+    cell: ({ row }) => <TxHashBadge transactionHash={row.original.transactionHash} />,
+  },
 ];
 
 export default function ImportHistory() {
+  const { isNFTsLoading, records } = useMintedBatches();
+
+  const data = React.useMemo<ImportRecord[]>(
+    () =>
+      records.map((record) => ({
+        id: `TK-${record.tokenId.toString()}`,
+        name: record.name,
+        description: record.description,
+        volume: record.supply.toString(),
+        status: "Minted",
+        transactionHash: record.transactionHash,
+      })),
+    [records]
+  );
+
   const table = useReactTable({
     data,
     columns,
@@ -91,7 +80,7 @@ export default function ImportHistory() {
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-primary">National Import History</h1>
-            <p className="text-lg text-muted-foreground mt">
+            <p className="text-lg text-muted-foreground mt-1">
               Log of all fertilizer shipments imported into the country.
             </p>
           </div>
@@ -99,7 +88,7 @@ export default function ImportHistory() {
             <Download className="w-4 h-4" /> Export CSV
           </Button>
         </div>
-        
+
         <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
@@ -115,7 +104,13 @@ export default function ImportHistory() {
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {isNFTsLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                      Loading blockchain history...
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow key={row.id} className="border-border hover:bg-muted/30 transition-colors">
                       {row.getVisibleCells().map((cell) => (
