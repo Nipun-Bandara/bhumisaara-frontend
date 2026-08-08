@@ -66,6 +66,14 @@ const stats = [
   },
 ];
 
+const defaultGridPattern = [
+  [7, 1],
+  [8, 5],
+  [9, 2],
+  [10, 4],
+  [7, 3],
+];
+
 export const Grid = ({
   pattern,
   size,
@@ -73,13 +81,7 @@ export const Grid = ({
   pattern?: number[][];
   size?: number;
 }) => {
-  const p = pattern ?? [
-    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
-    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
-    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
-    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
-    [Math.floor(Math.random() * 4) + 7, Math.floor(Math.random() * 6) + 1],
-  ];
+  const p = pattern ?? defaultGridPattern;
   return (
     <div className="pointer-events-none absolute left-1/2 top-0  -ml-20 -mt-2 h-full w-full [mask-image:linear-gradient(white,transparent)]">
       <div className="absolute inset-0 bg-gradient-to-r [mask-image:radial-gradient(farthest-side_at_top,white,transparent)] dark:from-muted/20 from-transparent to-transparent dark:to-muted/20 opacity-100">

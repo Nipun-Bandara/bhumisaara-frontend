@@ -3,8 +3,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Role } from "@/lib/navigation";
-import { api } from "@/lib/api";
-import { API_PATHS } from "@/lib/api-paths";
+import axiosInstance from "@/utils/axiosInstance";
+import apiPaths from "@/utils/apiPaths";
 
 interface LoginRequest {
   email: string;
@@ -69,33 +69,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  const login = async (credentials: LoginRequest) => {
-    const response = await api.post(API_PATHS.auth.login, credentials);
-    const data = response.data;
-    
+  const startSession = async (path: string, body: LoginRequest | RegisterPayload) => {
+    const { data } = await axiosInstance.post(path, body);
+
     localStorage.setItem("user", JSON.stringify(data));
     localStorage.setItem("token", data.token);
     if (data.refreshToken) {
       localStorage.setItem("refreshToken", data.refreshToken);
     }
-    
+
     setUser(mapSessionToUser(data));
     router.push("/dashboard");
   };
 
-  const register = async (payload: RegisterPayload) => {
-    const response = await api.post(API_PATHS.auth.register, payload);
-    const data = response.data;
-    
-    localStorage.setItem("user", JSON.stringify(data));
-    localStorage.setItem("token", data.token);
-    if (data.refreshToken) {
-      localStorage.setItem("refreshToken", data.refreshToken);
-    }
-    
-    setUser(mapSessionToUser(data));
-    router.push("/dashboard");
-  };
+  const login = (credentials: LoginRequest) =>
+    startSession(apiPaths.auth.login, credentials);
+
+  const register = (payload: RegisterPayload) =>
+    startSession(apiPaths.auth.register, payload);
 
   const logout = () => {
     localStorage.removeItem("user");

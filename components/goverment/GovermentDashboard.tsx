@@ -1,30 +1,20 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import { 
-  Download, 
-  Truck, 
-  TrendingUp, 
-  CheckCircle, 
-  Flame, 
-  Building2, 
-  ListPlus, 
-  Database, 
+import { useMemo } from "react";
+import MintBatchForm from "./MintBatchForm";
+import TxHashBadge from "./TxHashBadge";
+import { useMintedBatches } from "@/hooks/use-minted-batches";
+import {
+  Download,
+  Truck,
+  TrendingUp,
+  CheckCircle,
+  Flame,
+  Building2,
   ArrowRight,
-  Link as LinkIcon,
   Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -33,76 +23,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useActiveAccount, useSendTransaction, useReadContract } from "thirdweb/react";
-import { mintTo, getNFTs } from "thirdweb/extensions/erc1155";
-import { contract } from "@/lib/contract";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 export default function GovermentDashboard() {
-  const account = useActiveAccount();
-  const { mutate: sendTransaction, isPending } = useSendTransaction();
   const router = useRouter();
-  
-  const [importerName, setImporterName] = useState("");
-  const [fertilizerType, setFertilizerType] = useState("");
-  const [volume, setVolume] = useState("");
 
-  const { data: nfts, isLoading: isNFTsLoading } = useReadContract(getNFTs, {
-    contract,
-  });
+  const { isNFTsLoading, records } = useMintedBatches();
 
   const totalImportedTons = useMemo(() => {
-    if (!nfts) return 0;
-    const totalKg = nfts.reduce((sum, nft) => sum + Number(nft.supply), 0);
+    const totalKg = records.reduce((sum, record) => sum + Number(record.supply || 0), 0);
     return (totalKg / 1000).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
-  }, [nfts]);
+  }, [records]);
 
-  const formik = useFormik({
-    initialValues: {
-      importerName: "",
-      fertilizerType: "",
-      volume: "",
-    },
-    validationSchema: Yup.object({
-      importerName: Yup.string().required("Required"),
-      fertilizerType: Yup.string().required("Required"),
-      volume: Yup.number().typeError("Must be a number").positive("Must be a positive number").required("Required"),
-    }),
-    onSubmit: async (values, { resetForm }) => {
-      if (!account) {
-        toast.error("Please connect your wallet first!");
-        return;
-      }
-      try {
-        const transaction = mintTo({
-          contract,
-          to: account.address,
-          supply: BigInt(values.volume),
-          nft: {
-            name: `${values.importerName} - ${values.fertilizerType.toUpperCase()}`,
-            description: `Import batch of ${values.volume} KG.`,
-          }
-        });
-        
-        sendTransaction(transaction, {
-          onSuccess: () => {
-            toast.success("Batch minted successfully to the blockchain!");
-            resetForm();
-          },
-          onError: (error) => {
-            console.error(error);
-            toast.error("Failed to mint batch.");
-          }
-        });
-      } catch (err) {
-        console.error(err);
-        toast.error("An error occurred preparing the transaction");
-      }
-    },
-  });
-
-  const activeTokensMinted = nfts ? nfts.length : 0;
+  const activeTokensMinted = records.length;
   const totalBurns = 0; // We will update this once the burning flow is implemented
 
   return (
@@ -182,92 +115,8 @@ export default function GovermentDashboard() {
         <section className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           
           {/* Main Actions Panel */}
-          <div className="xl:col-span-1 bg-card rounded-2xl p-6 border border-border shadow-sm flex flex-col h-full relative overflow-hidden">
-            <div className="absolute -right-12 -top-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div className="flex items-center gap-3 mb-6 relative z-10">
-              <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                <ListPlus className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground">Register Import Batch</h3>
-            </div>
-            
-            <form onSubmit={formik.handleSubmit} className="space-y-5 flex-1 relative z-10 flex flex-col">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Importer / Manufacturer Name
-                  </label>
-                  <Input 
-                    {...formik.getFieldProps('importerName')}
-                    placeholder="e.g., Ceylon AgriCorp" 
-                    className="h-10" 
-                    aria-invalid={!!(formik.touched.importerName && formik.errors.importerName)}
-                  />
-                  {formik.touched.importerName && formik.errors.importerName ? (
-                    <div className="text-destructive text-xs mt-1">{formik.errors.importerName}</div>
-                  ) : null}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Fertilizer Type
-                  </label>
-                  <Select 
-                    value={formik.values.fertilizerType} 
-                    onValueChange={(val) => formik.setFieldValue('fertilizerType', val)}
-                  >
-                    <SelectTrigger 
-                      className="h-10"
-                      aria-invalid={!!(formik.touched.fertilizerType && formik.errors.fertilizerType)}
-                    >
-                      <SelectValue placeholder="Select compound..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="urea">Urea (Nitrogen)</SelectItem>
-                      <SelectItem value="mop">MOP (Muriate of Potash)</SelectItem>
-                      <SelectItem value="tsp">TSP (Triple Super Phosphate)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {formik.touched.fertilizerType && formik.errors.fertilizerType ? (
-                    <div className="text-destructive text-xs mt-1">{formik.errors.fertilizerType}</div>
-                  ) : null}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Volume (KG)
-                  </label>
-                  <div className="relative group">
-                    <Input 
-                      type="number" 
-                      {...formik.getFieldProps('volume')}
-                      placeholder="0.00" 
-                      className="h-10 pr-12" 
-                      aria-invalid={!!(formik.touched.volume && formik.errors.volume)}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-muted-foreground">
-                      <span className="text-sm font-medium">KG</span>
-                    </div>
-                  </div>
-                  {formik.touched.volume && formik.errors.volume ? (
-                    <div className="text-destructive text-xs mt-1">{formik.errors.volume}</div>
-                  ) : null}
-                </div>
-              </div>
-              
-              <div className="pt-4 mt-auto">
-                <Button 
-                  type="submit"
-                  disabled={isPending || formik.isSubmitting}
-                  className="w-full h-12 flex items-center justify-center gap-2 text-sm font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
-                >
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
-                  <Database className="w-4 h-4" />
-                  {isPending ? "Minting..." : "Mint Batch to Blockchain"}
-                </Button>
-              </div>
-            </form>
+          <div className="xl:col-span-1">
+            <MintBatchForm />
           </div>
 
           {/* Global Live Ledger Table */}
@@ -308,29 +157,27 @@ export default function GovermentDashboard() {
                         Loading blockchain ledger...
                       </TableCell>
                     </TableRow>
-                  ) : nfts && nfts.length > 0 ? (
-                    nfts.map((nft) => (
-                    <TableRow key={nft.id.toString()} className="hover:bg-muted/30 transition-colors duration-200 cursor-default group border-border">
-                      <TableCell className="py-4 px-6">
-                        <span className="font-mono text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20 text-sm">
-                          {nft.metadata?.name || "Unknown Batch"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-4 px-6 font-mono text-muted-foreground text-sm">
-                        TK-{nft.id.toString()}
-                      </TableCell>
-                      <TableCell className="py-4 px-6 text-right font-medium text-foreground">
-                        {nft.supply.toString()} kg
-                      </TableCell>
-                      <TableCell className="py-4 px-6 text-foreground">
-                        Government Reserve
-                      </TableCell>
-                      <TableCell className="py-4 px-6 text-center">
-                        <span className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2.5 py-1 rounded-full font-mono text-xs group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                          <LinkIcon className="w-3 h-3" /> Polygon Amoy
-                        </span>
-                      </TableCell>
-                    </TableRow>
+                  ) : records.length > 0 ? (
+                    records.map((record) => (
+                      <TableRow key={record.tokenId.toString()} className="hover:bg-muted/30 transition-colors duration-200 cursor-default group border-border">
+                        <TableCell className="py-4 px-6">
+                          <span className="font-mono text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20 text-sm">
+                            {record.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4 px-6 font-mono text-muted-foreground text-sm">
+                          TK-{record.tokenId.toString()}
+                        </TableCell>
+                        <TableCell className="py-4 px-6 text-right font-medium text-foreground">
+                          {record.supply.toString()} kg
+                        </TableCell>
+                        <TableCell className="py-4 px-6 text-foreground">
+                          Government Reserve
+                        </TableCell>
+                        <TableCell className="py-4 px-6 text-center">
+                          <TxHashBadge transactionHash={record.transactionHash} groupHover />
+                        </TableCell>
+                      </TableRow>
                     ))
                   ) : (
                     <TableRow>

@@ -17,9 +17,8 @@ import {
 } from "@/components/ui/table";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useReadContract } from "thirdweb/react";
-import { getNFTs } from "thirdweb/extensions/erc1155";
-import { contract } from "@/lib/contract";
+import TxHashBadge from "./TxHashBadge";
+import { useMintedBatches } from "@/hooks/use-minted-batches";
 
 type ImportRecord = {
   id: string;
@@ -27,6 +26,7 @@ type ImportRecord = {
   description: string;
   volume: string;
   status: string;
+  transactionHash?: string;
 };
 
 const columns: ColumnDef<ImportRecord>[] = [
@@ -45,20 +45,28 @@ const columns: ColumnDef<ImportRecord>[] = [
       );
     },
   },
+  {
+    accessorKey: "transactionHash",
+    header: "Tx Hash",
+    cell: ({ row }) => <TxHashBadge transactionHash={row.original.transactionHash} />,
+  },
 ];
 
 export default function ImportHistory() {
-  const { data: nfts = [], isLoading } = useReadContract(getNFTs, { contract });
+  const { isNFTsLoading, records } = useMintedBatches();
 
-  const data = React.useMemo(() => {
-    return nfts.map(nft => ({
-      id: `TK-${nft.id.toString()}`,
-      name: nft.metadata?.name || "Unknown Batch",
-      description: nft.metadata?.description || "No description",
-      volume: nft.supply.toString(),
-      status: "Minted",
-    }));
-  }, [nfts]);
+  const data = React.useMemo<ImportRecord[]>(
+    () =>
+      records.map((record) => ({
+        id: `TK-${record.tokenId.toString()}`,
+        name: record.name,
+        description: record.description,
+        volume: record.supply.toString(),
+        status: "Minted",
+        transactionHash: record.transactionHash,
+      })),
+    [records]
+  );
 
   const table = useReactTable({
     data,
@@ -72,7 +80,7 @@ export default function ImportHistory() {
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-primary">National Import History</h1>
-            <p className="text-lg text-muted-foreground mt">
+            <p className="text-lg text-muted-foreground mt-1">
               Log of all fertilizer shipments imported into the country.
             </p>
           </div>
@@ -80,7 +88,7 @@ export default function ImportHistory() {
             <Download className="w-4 h-4" /> Export CSV
           </Button>
         </div>
-        
+
         <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
@@ -96,7 +104,7 @@ export default function ImportHistory() {
                 ))}
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isNFTsLoading ? (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                       Loading blockchain history...
