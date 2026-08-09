@@ -6,6 +6,9 @@ const apiPaths = {
   batches: {
     save: "/batches",
   },
+  handovers: {
+    record: "/handovers",
+  },
 };
 
 export default apiPaths;
