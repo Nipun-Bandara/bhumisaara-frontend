@@ -22,6 +22,23 @@ import {
 import { toast } from "sonner";
 import { Loader2, Coins, CheckCircle, AlertCircle } from "lucide-react";
 
+/**
+ * Wallet UIs (including thirdweb's own details modal) drop any NFT whose
+ * metadata has no `image` — a batch minted with only a name and description is
+ * indexed but never rendered. This bakes a self-contained SVG into the
+ * metadata so a batch is actually visible in the holder's wallet.
+ */
+const buildBatchImage = (fertilizerType: string, volumeKg: string) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+<rect width="400" height="400" fill="#14532d"/>
+<text x="200" y="150" font-family="sans-serif" font-size="30" fill="#86efac" text-anchor="middle">BhumiSaara</text>
+<text x="200" y="225" font-family="sans-serif" font-size="64" font-weight="bold" fill="#ffffff" text-anchor="middle">${fertilizerType}</text>
+<text x="200" y="285" font-family="sans-serif" font-size="34" fill="#bbf7d0" text-anchor="middle">${volumeKg} kg</text>
+</svg>`;
+
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
 export default function MintBatchForm() {
   const account = useActiveAccount();
   const authContext = useAuth();
@@ -150,6 +167,7 @@ export default function MintBatchForm() {
         nft: {
           name: `${importerName.trim()} - ${fertilizerType}`,
           description: `Fertilizer Import Batch of ${volumeKg} KG (${fertilizerType})`,
+          image: buildBatchImage(fertilizerType, volumeKg),
         },
       });
 

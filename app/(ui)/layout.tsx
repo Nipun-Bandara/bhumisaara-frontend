@@ -11,6 +11,7 @@ import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import { inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/thirdwebClient";
+import { contract } from "@/lib/contract";
 import { polygonAmoy as amoy } from "thirdweb/chains";
 import { useWalletAddressSync } from "@/hooks/use-wallet-address-sync";
 
@@ -18,6 +19,21 @@ const ConnectButton = dynamic(
     () => import("thirdweb/react").then((mod) => mod.ConnectButton),
     { ssr: false }
 );
+
+// Built once at module scope: rebuilding this on every render handed the
+// ConnectButton a brand-new wallet object each time, which churns the
+// connection instead of reusing it.
+const wallet = inAppWallet({
+    smartAccount: {
+        chain: amoy,
+        sponsorGas: true,
+    },
+});
+
+// The wallet modal's NFT tab queries thirdweb Insight for the *active* chain.
+// Naming our ERC-1155 narrows that query to the fertilizer batches instead of
+// every collection the indexer knows about for this address.
+const supportedNFTs = { [amoy.id]: [contract.address] };
 
 export default function DashboardLayout({
     children,
@@ -46,13 +62,6 @@ export default function DashboardLayout({
         return null;
     }
 
-    const wallet = inAppWallet({
-        smartAccount: {
-            chain: amoy, // your Amoy chain object
-            sponsorGas: true,
-        },
-    });
-
     return (
         <SidebarProvider>
             <AppSidebar />
@@ -71,6 +80,11 @@ export default function DashboardLayout({
                                         <ConnectButton
                                             client={client}
                                             wallets={[wallet]}
+                                            // Without these the modal reads assets for
+                                            // whatever chain it defaults to, not Amoy.
+                                            chain={amoy}
+                                            chains={[amoy]}
+                                            supportedNFTs={supportedNFTs}
                                             theme={resolvedTheme === "light" ? "light" : "dark"}
                                         />
                                     ) : (

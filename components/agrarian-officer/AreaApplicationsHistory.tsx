@@ -22,14 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, ClipboardCheck, Clock, XCircle } from "lucide-react";
-import type { FertilizerRequest, RequestStatus } from "@/lib/fertilizerRequests";
+import { ClipboardCheck, Clock } from "lucide-react";
+import RequestStatusBadge from "@/components/RequestStatusBadge";
+import type { FertilizerRequest } from "@/lib/fertilizerRequests";
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: "ALL", label: "All statuses" },
   { value: "PENDING", label: "Pending" },
   { value: "APPROVED", label: "Approved" },
   { value: "REJECTED", label: "Rejected" },
+  { value: "PARTIALLY_COLLECTED", label: "Partly collected" },
   { value: "COLLECTED", label: "Collected" },
 ];
 
@@ -42,31 +44,6 @@ const describeError = (error: unknown, fallback: string) => {
 
 const formatDate = (value: string | null) =>
   value ? new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
-
-function StatusBadge({ status }: { status: RequestStatus }) {
-  const styles: Record<RequestStatus, string> = {
-    PENDING: "bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-400",
-    APPROVED: "bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400",
-    REJECTED: "bg-red-100 text-red-900 dark:bg-red-500/20 dark:text-red-400",
-    COLLECTED: "bg-primary/10 text-primary",
-  };
-
-  const icons: Record<RequestStatus, React.ReactNode> = {
-    PENDING: <Clock className="w-3.5 h-3.5" />,
-    APPROVED: <CheckCircle className="w-3.5 h-3.5" />,
-    REJECTED: <XCircle className="w-3.5 h-3.5" />,
-    COLLECTED: <CheckCircle className="w-3.5 h-3.5" />,
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status]}`}
-    >
-      {icons[status]}
-      {status.charAt(0) + status.slice(1).toLowerCase()}
-    </span>
-  );
-}
 
 export default function AreaApplicationsHistory() {
   const [requests, setRequests] = useState<FertilizerRequest[]>([]);
@@ -229,7 +206,7 @@ export default function AreaApplicationsHistory() {
                         {formatDate(request.reviewedAt)}
                       </TableCell>
                       <TableCell className="py-4 px-6">
-                        <StatusBadge status={request.status} />
+                        <RequestStatusBadge status={request.status} />
                       </TableCell>
                     </TableRow>
                   ))

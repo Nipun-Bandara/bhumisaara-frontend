@@ -41,6 +41,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["AGRARIAN_SERVICE_OFFICER"],
   },
   {
+    id: "handover",
+    label: "Handover",
+    href: "/handover",
+    roles: ["AGRARIAN_SERVICE_OFFICER"],
+  },
+  {
     id: "ownDistribution",
     label: "Own Distribution",
     href: "/own-distribution",
@@ -56,6 +62,18 @@ export const NAV_ITEMS: NavItem[] = [
     id: "importHistory",
     label: "Import History",
     href: "/import-history",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "officerDistribution",
+    label: "Distribute to Officers",
+    href: "/officer-distribution",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "sackLabels",
+    label: "Sack Labels",
+    href: "/sack-labels",
     roles: ["GOVERNMENT_ADMIN"],
   },
   {
@@ -88,7 +106,7 @@ export function getNavItemsForRole(userRole: Role | string | null | undefined): 
 
 export default NAV_ITEMS;
 
-import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History, Package, UserCheck, ClipboardCheck } from "lucide-react";
+import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History, Package, UserCheck, ClipboardCheck, QrCode, Truck, Flame } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -99,6 +117,9 @@ export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> =
   importHistory: History,
   distributionLevel: Layers,
   officerAssign: UserCheck,
+  officerDistribution: Truck,
+  handover: Flame,
+  sackLabels: QrCode,
   ownDistribution: History,
   inventory: Package,
   profile: User,

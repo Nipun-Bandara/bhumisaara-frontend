@@ -6,7 +6,14 @@
  * rather than in either role's folder.
  */
 
-export type RequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "COLLECTED";
+export type RequestStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  // Set by the officer → farmer handover once some, then all, of the approved
+  // amount has physically changed hands.
+  | "PARTIALLY_COLLECTED"
+  | "COLLECTED";
 
 export interface FertilizerRequest {
   requestId: number;
@@ -18,6 +25,8 @@ export interface FertilizerRequest {
   fertilizerType: string;
   requestedKg: number;
   approvedKg: number | null;
+  /** How much of `approvedKg` has physically been handed over so far. */
+  collectedKg: number;
   status: RequestStatus;
   reviewedByOfficerId: number | null;
   reviewedByOfficerUsername: string | null;

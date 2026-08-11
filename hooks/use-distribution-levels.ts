@@ -1,0 +1,230 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { isAxiosError } from "axios";
+import axiosInstance from "@/utils/axiosInstance";
+import apiPaths from "@/utils/apiPaths";
+import {
+  coveragePct,
+  type AdminTransfer,
+  type AreaDemand,
+  type Batch,
+} from "@/lib/distribution";
+
+export interface TypeBreakdown {
+  fertilizerType: string;
+  approvedKg: number;
+  transferredKg: number;
+  outstandingKg: number;
+  /** Volume still on the batch records for this type. */
+  stockKg: number;
+  batchCount: number;
+  coveragePct: number;
+}
+
+export interface DistrictBreakdown {
+  district: string;
+  areaCount: number;
+  approvedKg: number;
+  transferredKg: number;
+  outstandingKg: number;
+  coveragePct: number;
+}
+
+export interface DistributionTotals {
+  /**
+   * Sum of `fertilizer_batches.volume_kg`. Transfers deliberately don't consume
+   * it, so this is minted volume less what farmers have already collected —
+   * national stock on record, not lifetime imports.
+   */
+  registeredStockKg: number;
+  batchCount: number;
+
+  /** From the transfer ledger, so it counts every movement ever recorded. */
+  transferredKg: number;
+  transferCount: number;
+
+  approvedKg: number;
+  /** Only the part of `approvedKg` matched to a currently serving officer. */
+  demandTransferredKg: number;
+  outstandingKg: number;
+  coveragePct: number;
+
+  areasWithDemand: number;
+  /** Rows nobody can be sent stock for — no officer, or no wallet linked. */
+  blockedRows: number;
+}
+
+const describeError = (error: unknown, fallback: string) => {
+  if (isAxiosError(error)) {
+    return error.response?.data?.message || error.message || fallback;
+  }
+  return error instanceof Error ? error.message : fallback;
+};
+
+/**
+ * The national distribution picture, assembled from the three admin endpoints
+ * that already exist: minted batches, the area demand queue, and the transfer
+ * ledger. Every figure below is derived from one of them — nothing on this
+ * screen is estimated.
+ */
+export function useDistributionLevels() {
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [demand, setDemand] = useState<AreaDemand[]>([]);
+  const [transfers, setTransfers] = useState<AdminTransfer[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+
+    try {
+      // All three are government-admin scoped, so a 403 on any one of them
+      // means the caller can't run this screen at all — fail the whole load.
+      const [batchesResponse, demandResponse, transfersResponse] = await Promise.all([
+        axiosInstance.get<Batch[]>(apiPaths.batches.save),
+        axiosInstance.get<AreaDemand[]>(apiPaths.transfers.demand),
+        axiosInstance.get<AdminTransfer[]>(apiPaths.transfers.history),
+      ]);
+
+      setBatches(batchesResponse.data || []);
+      setDemand(demandResponse.data || []);
+      setTransfers(transfersResponse.data || []);
+    } catch (error) {
+      setLoadError(describeError(error, "Could not load distribution data."));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const totals = useMemo<DistributionTotals>(() => {
+    const registeredStockKg = batches.reduce((sum, batch) => sum + Number(batch.volumeKg || 0), 0);
+    const transferredKg = transfers.reduce((sum, transfer) => sum + Number(transfer.amountKg || 0), 0);
+
+    const approvedKg = demand.reduce((sum, row) => sum + Number(row.approvedKg || 0), 0);
+    const demandTransferredKg = demand.reduce((sum, row) => sum + Number(row.transferredKg || 0), 0);
+    const outstandingKg = demand.reduce((sum, row) => sum + Number(row.outstandingKg || 0), 0);
+
+    return {
+      registeredStockKg,
+      batchCount: batches.length,
+      transferredKg,
+      transferCount: transfers.length,
+      approvedKg,
+      demandTransferredKg,
+      outstandingKg,
+      coveragePct: coveragePct(demandTransferredKg, approvedKg),
+      areasWithDemand: new Set(demand.map((row) => row.areaId)).size,
+      blockedRows: demand.filter((row) => !row.officerWallet).length,
+    };
+  }, [batches, demand, transfers]);
+
+  /** Demand and remaining stock per fertilizer type, worst-covered first. */
+  const byType = useMemo<TypeBreakdown[]>(() => {
+    const rows = new Map<string, TypeBreakdown>();
+
+    const rowFor = (fertilizerType: string) => {
+      const key = fertilizerType.toUpperCase();
+      let row = rows.get(key);
+      if (!row) {
+        row = {
+          fertilizerType,
+          approvedKg: 0,
+          transferredKg: 0,
+          outstandingKg: 0,
+          stockKg: 0,
+          batchCount: 0,
+          coveragePct: 0,
+        };
+        rows.set(key, row);
+      }
+      return row;
+    };
+
+    demand.forEach((entry) => {
+      const row = rowFor(entry.fertilizerType);
+      row.approvedKg += Number(entry.approvedKg || 0);
+      row.transferredKg += Number(entry.transferredKg || 0);
+      row.outstandingKg += Number(entry.outstandingKg || 0);
+    });
+
+    // A type can hold stock with no demand raised against it yet, so batches
+    // are folded in separately rather than only alongside a demand row.
+    batches.forEach((batch) => {
+      const row = rowFor(batch.fertilizerType);
+      row.stockKg += Number(batch.volumeKg || 0);
+      row.batchCount += 1;
+    });
+
+    return [...rows.values()]
+      .map((row) => ({ ...row, coveragePct: coveragePct(row.transferredKg, row.approvedKg) }))
+      .sort((a, b) => b.outstandingKg - a.outstandingKg);
+  }, [batches, demand]);
+
+  /** Demand rolled up by district — the closest thing to a regional view. */
+  const byDistrict = useMemo<DistrictBreakdown[]>(() => {
+    const rows = new Map<string, DistrictBreakdown & { areaIds: Set<number> }>();
+
+    demand.forEach((entry) => {
+      const district = entry.district ?? "Unassigned district";
+      let row = rows.get(district);
+
+      if (!row) {
+        row = {
+          district,
+          areaCount: 0,
+          approvedKg: 0,
+          transferredKg: 0,
+          outstandingKg: 0,
+          coveragePct: 0,
+          areaIds: new Set<number>(),
+        };
+        rows.set(district, row);
+      }
+
+      row.areaIds.add(entry.areaId);
+      row.approvedKg += Number(entry.approvedKg || 0);
+      row.transferredKg += Number(entry.transferredKg || 0);
+      row.outstandingKg += Number(entry.outstandingKg || 0);
+    });
+
+    return [...rows.values()]
+      .map(({ areaIds, ...row }) => ({
+        ...row,
+        areaCount: areaIds.size,
+        coveragePct: coveragePct(row.transferredKg, row.approvedKg),
+      }))
+      .sort((a, b) => b.outstandingKg - a.outstandingKg);
+  }, [demand]);
+
+  /** Area rows, largest shortfall first — the same order as the transfer queue. */
+  const areaRows = useMemo(
+    () => [...demand].sort((a, b) => b.outstandingKg - a.outstandingKg),
+    [demand]
+  );
+
+  /** The transfer ledger arrives newest first from the backend. */
+  const recentTransfers = useMemo(() => transfers.slice(0, 8), [transfers]);
+
+  return {
+    isLoading,
+    loadError,
+    refetch: loadData,
+    batches,
+    demand,
+    transfers,
+    totals,
+    byType,
+    byDistrict,
+    areaRows,
+    recentTransfers,
+  };
+}
+
+export default useDistributionLevels;
