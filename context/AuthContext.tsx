@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Role } from "@/lib/navigation";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
+import { walletAddressStorageKey } from "@/lib/walletStorage";
 
 interface LoginRequest {
   email: string;
@@ -92,6 +93,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
+    if (user) {
+      // Drop the "already synced this wallet" marker so a fresh login re-links
+      // the connected wallet instead of assuming the backend already has it.
+      localStorage.removeItem(walletAddressStorageKey(user.id));
+    }
     setUser(null);
     router.push("/auth");
   };

@@ -1,22 +1,22 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import ApplicationForm from "@/components/farmer/ApplicationForm";
+import OfficerDistribution from "@/components/goverment/OfficerDistribution";
 
-export default function ApplicationFormPage() {
+export default function OfficerDistributionPage() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) return null;
 
-  if (user?.role === "FARMER") {
-    return <ApplicationForm />;
+  if (user?.role === "GOVERNMENT_ADMIN") {
+    return <OfficerDistribution />;
   }
 
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
       <h1 className="text-3xl font-bold text-foreground">Access Denied</h1>
       <p className="text-base text-muted-foreground">
-        Only farmers can apply for a fertilizer subsidy.
+        You do not have permission to distribute stock to officers.
       </p>
     </div>
   );

@@ -27,10 +27,24 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["FARMER"],
   },
   {
+    // Farmers see their own applications here; officers see every application
+    // from their area (see app/(ui)/applications-history/page.tsx).
     id: "applicationsHistory",
     label: "Applications History",
     href: "/applications-history",
-    roles: ["FARMER"],
+    roles: ["FARMER", "AGRARIAN_SERVICE_OFFICER"],
+  },
+  {
+    id: "requestApprovals",
+    label: "Request Approvals",
+    href: "/request-approvals",
+    roles: ["AGRARIAN_SERVICE_OFFICER"],
+  },
+  {
+    id: "handover",
+    label: "Handover",
+    href: "/handover",
+    roles: ["AGRARIAN_SERVICE_OFFICER"],
   },
   {
     id: "ownDistribution",
@@ -49,6 +63,24 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Import History",
     href: "/import-history",
     roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "officerDistribution",
+    label: "Distribute to Officers",
+    href: "/officer-distribution",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "sackLabels",
+    label: "Sack Labels",
+    href: "/sack-labels",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "officerAssign",
+    label: "Assign Officers",
+    href: "/officer-assign",
+    roles: ["GOVERNMENT_ADMIN", "SYSTEM_ADMIN"],
   },
   {
     id: "inventory",
@@ -74,15 +106,20 @@ export function getNavItemsForRole(userRole: Role | string | null | undefined): 
 
 export default NAV_ITEMS;
 
-import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History, Package } from "lucide-react";
+import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History, Package, UserCheck, ClipboardCheck, QrCode, Truck, Flame } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   dashboard: Home,
   applicationForm: FileText,
   applicationsHistory: History,
+  requestApprovals: ClipboardCheck,
   importHistory: History,
   distributionLevel: Layers,
+  officerAssign: UserCheck,
+  officerDistribution: Truck,
+  handover: Flame,
+  sackLabels: QrCode,
   ownDistribution: History,
   inventory: Package,
   profile: User,
