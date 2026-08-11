@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+// Points at the backend's context path (server.servlet.context-path), so the
+// API version is set once here and never repeated in utils/apiPaths.ts.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,

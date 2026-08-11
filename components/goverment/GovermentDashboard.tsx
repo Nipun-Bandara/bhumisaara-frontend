@@ -1,12 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import MintBatchForm from "./MintBatchForm";
 import TxHashBadge from "./TxHashBadge";
 import { useMintedBatches } from "@/hooks/use-minted-batches";
-import axiosInstance from "@/utils/axiosInstance";
+import { useApiList } from "@/hooks/use-api-resource";
+import { useAllDistributions } from "@/hooks/use-distributions";
+import { useTransfers } from "@/hooks/use-transfers";
 import apiPaths from "@/utils/apiPaths";
-import type { AdminTransfer, DistributionRecord } from "@/lib/distribution";
+import { formatKg } from "@/utils/formatters";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableEmptyState, TableSkeletonRows } from "@/components/ui/table-states";
 import WalletAssets from "@/components/WalletAssets";
 import {
   Download,
@@ -41,34 +46,18 @@ export default function GovermentDashboard() {
 
   // The national ledgers behind the KPI ribbon: every handover burn, every
   // transfer to an officer, and who is actually staffing an area.
-  const [distributions, setDistributions] = useState<DistributionRecord[]>([]);
-  const [transfers, setTransfers] = useState<AdminTransfer[]>([]);
-  const [officers, setOfficers] = useState<Officer[]>([]);
-  const [isLedgerLoading, setIsLedgerLoading] = useState(true);
+  const distributionsQuery = useAllDistributions();
+  const transfersQuery = useTransfers();
+  const officersQuery = useApiList<Officer>(
+    ["officers", "assigned"],
+    `${apiPaths.officers.list}?assigned=true`
+  );
 
-  const loadLedgers = useCallback(async () => {
-    setIsLedgerLoading(true);
-
-    try {
-      const [distributionsResponse, transfersResponse, officersResponse] = await Promise.all([
-        axiosInstance.get<DistributionRecord[]>(apiPaths.distributions.all),
-        axiosInstance.get<AdminTransfer[]>(apiPaths.transfers.history),
-        axiosInstance.get<Officer[]>(`${apiPaths.officers.list}?assigned=true`),
-      ]);
-
-      setDistributions(distributionsResponse.data || []);
-      setTransfers(transfersResponse.data || []);
-      setOfficers(officersResponse.data || []);
-    } catch (error) {
-      console.warn("Could not load the national ledgers", error);
-    } finally {
-      setIsLedgerLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadLedgers();
-  }, [loadLedgers]);
+  const distributions = distributionsQuery.data;
+  const transfers = transfersQuery.data;
+  const officers = officersQuery.data;
+  const isLedgerLoading =
+    distributionsQuery.isLoading || transfersQuery.isLoading || officersQuery.isLoading;
 
   const totalImportedTons = useMemo(() => {
     const totalKg = records.reduce((sum, record) => sum + Number(record.supply || 0), 0);
@@ -159,10 +148,10 @@ export default function GovermentDashboard() {
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">Total Decentralized Burns</p>
             <h3 className="text-4xl font-bold text-foreground group-hover:text-primary transition-colors">
-              {isLedgerLoading ? "—" : totalBurns}
+              {isLedgerLoading ? <Skeleton className="h-9 w-16" /> : totalBurns}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {isLedgerLoading ? "" : `${burnedKg.toLocaleString()}kg collected by farmers`}
+              {isLedgerLoading ? "" : `${formatKg(burnedKg)} collected by farmers`}
             </p>
           </div>
 
@@ -180,7 +169,7 @@ export default function GovermentDashboard() {
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">Active Agrarian Centers</p>
             <h3 className="text-4xl font-bold text-foreground group-hover:text-primary transition-colors">
-              {isLedgerLoading ? "—" : activeCentres}
+              {isLedgerLoading ? <Skeleton className="h-9 w-16" /> : activeCentres}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
               {isLedgerLoading ? "" : "areas with an officer assigned"}
@@ -232,11 +221,7 @@ export default function GovermentDashboard() {
                 <TableBody className="divide-y divide-border/50">
                   
                   {isNFTsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        Loading blockchain ledger...
-                      </TableCell>
-                    </TableRow>
+                    <TableSkeletonRows columns={5} rows={3} />
                   ) : records.length > 0 ? (
                     records.map((record) => (
                       <TableRow key={record.tokenId.toString()} className="hover:bg-muted/30 transition-colors duration-200 cursor-default group border-border">
@@ -249,7 +234,7 @@ export default function GovermentDashboard() {
                           TK-{record.tokenId.toString()}
                         </TableCell>
                         <TableCell className="py-4 px-6 text-right font-medium text-foreground">
-                          {record.supply.toString()} kg
+                          {formatKg(Number(record.supply))}
                         </TableCell>
                         <TableCell className="py-4 px-6 text-foreground">
                           {(() => {
@@ -266,11 +251,12 @@ export default function GovermentDashboard() {
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No batches minted yet.
-                      </TableCell>
-                    </TableRow>
+                    <TableEmptyState
+                      columns={5}
+                      icon={Coins}
+                      title="No batches minted yet"
+                      description="Mint an import batch with the form beside this ledger and it appears here."
+                    />
                   )}
                   
                 </TableBody>

@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isAxiosError } from "axios";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useActiveAccount, useReadContract, useSendTransaction } from "thirdweb/react";
 import { burn, getOwnedNFTs } from "thirdweb/extensions/erc1155";
 import { waitForReceipt } from "thirdweb";
@@ -9,10 +8,16 @@ import { contract } from "@/lib/contract";
 import { client } from "@/lib/thirdwebClient";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
-import type { Batch, PendingCollection, SackValidation } from "@/lib/distribution";
+import { describeApiError } from "@/utils/apiError";
+import { formatKg, truncateAddress } from "@/utils/formatters";
+import { useBatches } from "@/hooks/use-batches";
+import { usePendingCollections } from "@/hooks/use-pending-collections";
+import type { PendingCollection, SackValidation } from "@/lib/distribution";
 import { ScanField } from "@/components/goverment/QrScanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import {
   Select,
   SelectContent,
@@ -60,13 +65,6 @@ const SACK_WEIGHT_KG = 50;
 const SERIAL_PATTERN = /[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/;
 const ADDRESS_PATTERN = /0x[a-fA-F0-9]{40}/;
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
 /** A sack QR may carry a URL or prefix; the serial itself is what matters. */
 const extractSerial = (scanned: string) => {
   const normalised = scanned.trim().toUpperCase();
@@ -89,10 +87,13 @@ export default function HandoverForm() {
   const account = useActiveAccount();
   const { mutateAsync: sendTransaction, isPending: isTxPending } = useSendTransaction();
 
-  const [collections, setCollections] = useState<PendingCollection[]>([]);
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const collectionsQuery = usePendingCollections();
+  const batchesQuery = useBatches();
+
+  const collections = collectionsQuery.data;
+  const batches = batchesQuery.data;
+  const isLoading = collectionsQuery.isLoading || batchesQuery.isLoading;
+  const loadError = collectionsQuery.error ?? batchesQuery.error;
 
   // Stage 1
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
@@ -117,27 +118,8 @@ export default function HandoverForm() {
   const pendingHandoverRef = useRef<PendingHandover | null>(null);
 
   const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const [collectionsResponse, batchesResponse] = await Promise.all([
-        axiosInstance.get<PendingCollection[]>(apiPaths.distributions.pending),
-        axiosInstance.get<Batch[]>(apiPaths.batches.save),
-      ]);
-
-      setCollections(collectionsResponse.data || []);
-      setBatches(batchesResponse.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load pending collections."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    await Promise.all([collectionsQuery.refetch(), batchesQuery.refetch()]);
+  }, [collectionsQuery, batchesQuery]);
 
   /**
    * Only the stock actually sitting in this officer's wallet. getNFTs would
@@ -266,7 +248,7 @@ export default function HandoverForm() {
       ]);
     } catch (error) {
       toast.error("Sack rejected.", {
-        description: describeError(error, "Could not validate this sack."),
+        description: describeApiError(error, "Could not validate this sack."),
         icon: <AlertCircle className="w-5 h-5 text-destructive" />,
       });
     } finally {
@@ -304,7 +286,7 @@ export default function HandoverForm() {
     setWalletConfirmed(true);
     setWalletError(null);
     toast.success("Farmer wallet confirmed.", {
-      icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+      icon: <CheckCircle className="w-5 h-5 text-primary" />,
     });
   };
 
@@ -343,7 +325,7 @@ export default function HandoverForm() {
       toast.dismiss(toastId);
       toast.success("Handover recorded successfully!", {
         description: `${pending.amountDispensedKg}kg · ${pending.sackSerials.length} sacks → ${pending.farmerName}`,
-        icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        icon: <CheckCircle className="w-5 h-5 text-primary" />,
       });
 
       pendingHandoverRef.current = null;
@@ -356,7 +338,7 @@ export default function HandoverForm() {
       // The tokens are already burned. Losing this hash would leave a handover
       // nobody can reconcile, so it stays on screen until dismissed.
       toast.error("Tokens burned, but the registry save failed.", {
-        description: `Record this transaction hash manually: ${burnTransactionHash} — ${describeError(
+        description: `Record this transaction hash manually: ${burnTransactionHash} — ${describeApiError(
           error,
           "Please check server connection."
         )}`,
@@ -408,7 +390,7 @@ export default function HandoverForm() {
       pendingHandoverRef.current = null;
       console.error("Burn Transaction Error:", error);
       toast.error("Blockchain burn transaction failed.", {
-        description: describeError(error, "User denied or transaction reverted."),
+        description: describeApiError(error, "User denied or transaction reverted."),
       });
     }
   };
@@ -432,16 +414,9 @@ export default function HandoverForm() {
           )}
         </div>
 
-        {loadError ? (
-          <Card className="border-destructive/40 shadow-sm">
-            <CardContent className="pt-6 flex flex-col items-start gap-4">
-              <p className="text-base text-destructive">{loadError}</p>
-              <Button variant="outline" onClick={loadData}>
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
+        {/* A failed load is surfaced inside the queue table rather than
+            replacing the page, so the stage layout never jumps around. */}
+        <>
           <>
             {/* ─── Stage 1: pick the farmer ───────────────────────────────── */}
             <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
@@ -465,18 +440,17 @@ export default function HandoverForm() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                          Loading pending collections...
-                        </TableCell>
-                      </TableRow>
+                    {loadError ? (
+                      <TableErrorState columns={6} message={loadError} onRetry={loadData} />
+                    ) : isLoading ? (
+                      <TableSkeletonRows columns={6} rows={3} />
                     ) : collections.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                          No approved requests awaiting collection in your area.
-                        </TableCell>
-                      </TableRow>
+                      <TableEmptyState
+                        columns={6}
+                        icon={User}
+                        title="No collections waiting"
+                        description="Farmers appear here once you approve their request in the review queue."
+                      />
                     ) : (
                       collections.map((row) => {
                         const isSelected = row.requestId === selectedRequestId;
@@ -498,18 +472,18 @@ export default function HandoverForm() {
                             </TableCell>
                             <TableCell className="py-4 px-6">{row.fertilizerType}</TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums">
-                              {row.approvedKg}kg
+                              {formatKg(row.approvedKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums text-muted-foreground">
-                              {row.collectedKg}kg
+                              {formatKg(row.collectedKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums font-semibold text-foreground">
-                              {row.remainingKg}kg
+                              {formatKg(row.remainingKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6">
                               {row.farmerWallet ? (
                                 <span className="font-mono text-xs text-muted-foreground">
-                                  {row.farmerWallet.slice(0, 6)}…{row.farmerWallet.slice(-4)}
+                                  {truncateAddress(row.farmerWallet)}
                                 </span>
                               ) : (
                                 <span className="text-xs text-destructive">Farmer wallet not linked</span>
@@ -698,7 +672,7 @@ export default function HandoverForm() {
                     />
 
                     {walletConfirmed && (
-                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+                      <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
                         <CheckCircle className="w-4 h-4" />
                         Wallet confirmed — this is the approved farmer.
                       </div>
@@ -759,7 +733,7 @@ export default function HandoverForm() {
               </CardContent>
             </Card>
           </>
-        )}
+        </>
       </main>
     </div>
   );

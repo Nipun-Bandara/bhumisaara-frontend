@@ -35,7 +35,9 @@ export default function ProfilePage() {
     return <DealerProfile />;
   }
 
-  if (user?.roles.includes("ORGANIC_FERTILIZER_PRODUCER")) {
+  // AuthUser carries a single `role`, never a `roles` array — reading
+  // `.roles.includes` threw a TypeError for every organic producer.
+  if (user?.role === "ORGANIC_FERTILIZER_PRODUCER") {
     return <OrganicProducerProfile />;
   }
 

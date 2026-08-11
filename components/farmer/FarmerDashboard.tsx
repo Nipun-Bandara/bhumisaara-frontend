@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { User, Leaf, ArrowRight, BadgeCheck, AlertTriangle, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
+import { formatDate, formatKg } from "@/utils/formatters";
 import { useAuth } from "@/context/AuthContext";
-import { useFarmerCollections } from "@/hooks/use-farmer-collections";
+import { useApiResource } from "@/hooks/use-api-resource";
+import { useFarmerDistributions } from "@/hooks/use-distributions";
+import { useMyFertilizerRequests } from "@/hooks/use-fertilizer-requests";
 import TxHashBadge from "@/components/goverment/TxHashBadge";
-import type { FertilizerRequest } from "@/lib/fertilizerRequests";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableEmptyState, TableSkeletonRows } from "@/components/ui/table-states";
 
 interface FarmerArea {
   areaId: number | null;
@@ -25,71 +29,28 @@ interface FarmerArea {
   district: string | null;
 }
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" });
+interface WalletResponse {
+  walletAddress: string | null;
+}
 
 export default function FarmerDashboard() {
   const { user } = useAuth();
-  const { collections, isLoading: isCollectionsLoading } = useFarmerCollections();
-
-  const [requests, setRequests] = useState<FertilizerRequest[]>([]);
-  const [area, setArea] = useState<FarmerArea | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const { data: collections, isLoading: isCollectionsLoading } = useFarmerDistributions();
+  const { data: requests, isLoading: isRequestsLoading } = useMyFertilizerRequests();
+  const { data: area, isLoading: isAreaLoading } = useApiResource<FarmerArea>(
+    ["farmer", "area"],
+    apiPaths.farmers.myArea
+  );
 
   // The officer scans this at handover, so it has to be the address the backend
   // holds — not whatever wallet happens to be connected in this browser.
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [isWalletLoading, setIsWalletLoading] = useState(true);
+  const { data: wallet, isLoading: isWalletLoading } = useApiResource<WalletResponse>(
+    ["users", "me", "wallet"],
+    apiPaths.users.myWallet
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchWallet = async () => {
-      try {
-        const response = await axiosInstance.get<{ walletAddress: string | null }>(
-          apiPaths.users.myWallet
-        );
-        if (!cancelled) setWalletAddress(response.data?.walletAddress ?? null);
-      } catch (error) {
-        console.warn("Could not load the linked wallet address", error);
-      } finally {
-        if (!cancelled) setIsWalletLoading(false);
-      }
-    };
-
-    fetchWallet();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // The quota ring is the farmer's own approvals, not a national allowance.
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchProfile = async () => {
-      try {
-        const [requestsResponse, areaResponse] = await Promise.all([
-          axiosInstance.get<FertilizerRequest[]>(apiPaths.fertilizerRequests.mine),
-          axiosInstance.get<FarmerArea>(apiPaths.farmers.myArea),
-        ]);
-
-        if (!cancelled) {
-          setRequests(requestsResponse.data || []);
-          setArea(areaResponse.data ?? null);
-        }
-      } catch (error) {
-        console.warn("Could not load the farmer profile", error);
-      } finally {
-        if (!cancelled) setIsProfileLoading(false);
-      }
-    };
-
-    fetchProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const walletAddress = wallet?.walletAddress ?? null;
+  const isProfileLoading = isRequestsLoading || isAreaLoading;
 
   /**
    * What this farmer has actually been granted and taken: every request that
@@ -157,9 +118,11 @@ export default function FarmerDashboard() {
               <div className="bg-background p-4 rounded-lg flex flex-col items-center justify-center border border-border gap-2">
                 <p className="text-sm font-medium text-muted-foreground">Wallet QR Code</p>
                 {isWalletLoading ? (
-                  <div className="w-48 h-48 rounded-md bg-muted animate-pulse" />
+                  <Skeleton className="w-48 h-48 rounded-md" />
                 ) : walletAddress ? (
                   <>
+                    {/* White quiet zone on purpose — a QR on a dark card
+                        will not scan reliably. */}
                     <div className="bg-white p-3 rounded-md">
                       <QRCodeSVG value={walletAddress} size={168} level="M" marginSize={0} />
                     </div>
@@ -258,17 +221,14 @@ export default function FarmerDashboard() {
               </TableHeader>
               <TableBody>
                 {isCollectionsLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      Loading your collections...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={5} rows={3} />
                 ) : collections.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      Nothing collected yet.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={5}
+                    icon={BadgeCheck}
+                    title="Nothing collected yet"
+                    description="Collections appear here once your agrarian officer hands fertilizer over to you."
+                  />
                 ) : (
                   collections.map((collection) => (
                     <TableRow
@@ -279,21 +239,21 @@ export default function FarmerDashboard() {
                     >
                       <TableCell className="py-4">{formatDate(collection.createdAt)}</TableCell>
                       <TableCell className="py-4">{collection.fertilizerType ?? "—"}</TableCell>
-                      <TableCell className="py-4">{collection.amountDispensedKg}kg</TableCell>
+                      <TableCell className="py-4">{formatKg(collection.amountDispensedKg)}</TableCell>
                       <TableCell className="py-4">
                         <TxHashBadge transactionHash={collection.burnTransactionHash} groupHover />
                       </TableCell>
                       <TableCell className="py-4">
                         {collection.disputed ? (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-900 dark:bg-red-500/20 dark:text-red-400 px-2.5 py-0.5 rounded-full text-xs font-medium">
-                            <AlertTriangle className="w-4 h-4" />
+                          <Badge variant="destructive">
+                            <AlertTriangle />
                             Disputed
-                          </span>
+                          </Badge>
                         ) : (
-                          <span className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2.5 py-0.5 rounded-full text-xs font-medium">
-                            <BadgeCheck className="w-4 h-4" />
+                          <Badge variant="secondary">
+                            <BadgeCheck />
                             Verified on Blockchain
-                          </span>
+                          </Badge>
                         )}
                       </TableCell>
                     </TableRow>

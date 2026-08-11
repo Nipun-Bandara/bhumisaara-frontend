@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { isAxiosError } from "axios";
+import { useCallback, useMemo, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
+import { describeApiError } from "@/utils/apiError";
+import { useApiList } from "@/hooks/use-api-resource";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import {
   Select,
   SelectContent,
@@ -42,47 +45,28 @@ interface Officer {
   district: string | null;
 }
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
 export default function OfficerAssign() {
-  const [officers, setOfficers] = useState<Officer[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
   const [selectedOfficerId, setSelectedOfficerId] = useState<string>("");
   const [selectedAreaId, setSelectedAreaId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Both lists are government-admin scoped, so a 403 on either means the
+  // signed-in user can't run this screen at all — surface the first failure.
+  const officersQuery = useApiList<Officer>(["officers"], apiPaths.officers.list, {
+    errorMessage: "Could not load officers.",
+  });
+  const areasQuery = useApiList<Area>(["areas"], apiPaths.areas.list, {
+    errorMessage: "Could not load areas.",
+  });
+
+  const officers = officersQuery.data;
+  const areas = areasQuery.data;
+  const isLoading = officersQuery.isLoading || areasQuery.isLoading;
+  const loadError = officersQuery.error ?? areasQuery.error;
+
   const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      // Both lists are government-admin scoped, so a 403 on either means the
-      // signed-in user can't run this screen at all — fail the whole load.
-      const [officersResponse, areasResponse] = await Promise.all([
-        axiosInstance.get<Officer[]>(apiPaths.officers.list),
-        axiosInstance.get<Area[]>(apiPaths.areas.list),
-      ]);
-
-      setOfficers(officersResponse.data || []);
-      setAreas(areasResponse.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load officers and areas."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    await Promise.all([officersQuery.refetch(), areasQuery.refetch()]);
+  }, [officersQuery, areasQuery]);
 
   const selectedOfficer = useMemo(
     () => officers.find((officer) => String(officer.userId) === selectedOfficerId),
@@ -125,7 +109,7 @@ export default function OfficerAssign() {
       toast.dismiss(toastId);
       toast.success("Officer assigned successfully!", {
         description: `${selectedOfficer.username} → ${selectedArea.areaName}, ${selectedArea.district}`,
-        icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        icon: <CheckCircle className="w-5 h-5 text-primary" />,
       });
 
       setSelectedOfficerId("");
@@ -133,7 +117,7 @@ export default function OfficerAssign() {
     } catch (error) {
       toast.dismiss(toastId);
       toast.error("Could not assign the officer.", {
-        description: describeError(error, "Please check server connection."),
+        description: describeApiError(error, "Please check server connection."),
       });
     } finally {
       setIsSaving(false);
@@ -151,22 +135,15 @@ export default function OfficerAssign() {
               Attach agrarian service officers to the area they serve.
             </p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-secondary/30 text-secondary-foreground text-sm font-medium rounded-full border border-secondary/20 w-fit">
+          <Badge variant="secondary" className="px-4 py-2 text-sm">
             <Users className="w-4 h-4" />
             {assignedCount} of {officers.length} officers assigned
-          </div>
+          </Badge>
         </div>
 
-        {loadError ? (
-          <Card className="border-destructive/40 shadow-sm">
-            <CardContent className="pt-6 flex flex-col items-start gap-4">
-              <p className="text-base text-destructive">{loadError}</p>
-              <Button variant="outline" onClick={loadData}>
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
+        {/* A failed load is surfaced in the assignments table below rather than
+            replacing the page, so the form keeps its place. */}
+        <>
           <>
             {/* Assignment form */}
             <Card className="border-border shadow-sm">
@@ -307,18 +284,17 @@ export default function OfficerAssign() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                          Loading officers...
-                        </TableCell>
-                      </TableRow>
+                    {loadError ? (
+                      <TableErrorState columns={5} message={loadError} onRetry={loadData} />
+                    ) : isLoading ? (
+                      <TableSkeletonRows columns={5} />
                     ) : officers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                          No officers found.
-                        </TableCell>
-                      </TableRow>
+                      <TableEmptyState
+                        columns={5}
+                        icon={Users}
+                        title="No officers found"
+                        description="Users who register with the agrarian service officer role appear here."
+                      />
                     ) : (
                       officers.map((officer) => (
                         <TableRow key={officer.userId} className="border-border hover:bg-muted/30 transition-colors">
@@ -328,14 +304,12 @@ export default function OfficerAssign() {
                           <TableCell className="py-4 px-6">{officer.district ?? "—"}</TableCell>
                           <TableCell className="py-4 px-6">
                             {officer.isAssigned ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400">
-                                <CheckCircle className="w-3.5 h-3.5" />
+                              <Badge variant="success">
+                                <CheckCircle />
                                 Assigned
-                              </span>
+                              </Badge>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                                Unassigned
-                              </span>
+                              <Badge variant="muted">Unassigned</Badge>
                             )}
                           </TableCell>
                         </TableRow>
@@ -346,7 +320,7 @@ export default function OfficerAssign() {
               </div>
             </div>
           </>
-        )}
+        </>
       </main>
     </div>
   );

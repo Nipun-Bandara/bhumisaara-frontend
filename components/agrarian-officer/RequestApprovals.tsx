@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { isAxiosError } from "axios";
+import { useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
+import { describeApiError } from "@/utils/apiError";
+import { formatDate, formatKg } from "@/utils/formatters";
+import { usePendingFertilizerRequests } from "@/hooks/use-fertilizer-requests";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import {
   Table,
   TableBody,
@@ -18,54 +22,28 @@ import { toast } from "sonner";
 import { CheckCircle, ClipboardCheck, Loader2, XCircle } from "lucide-react";
 import type { FertilizerRequest } from "@/lib/fertilizerRequests";
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
-const formatDate = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
-
 export default function RequestApprovals() {
-  const [requests, setRequests] = useState<FertilizerRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    data: requests,
+    isLoading,
+    error: loadError,
+    refetch: loadRequests,
+  } = usePendingFertilizerRequests();
 
-  // Per-row approved amount, keyed by requestId. Seeded from requestedKg so a
-  // full approval is a single click.
-  const [approvedKgById, setApprovedKgById] = useState<Record<number, string>>({});
+  // Only the amounts the officer has actually typed. Anything untouched falls
+  // back to requestedKg at render time, so a full approval stays a single click
+  // without an effect seeding state behind the queue.
+  const [editedKgById, setEditedKgById] = useState<Record<number, string>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
 
-  const loadRequests = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const response = await axiosInstance.get<FertilizerRequest[]>(apiPaths.fertilizerRequests.pending);
-      const pending = response.data || [];
-
-      setRequests(pending);
-      setApprovedKgById(
-        Object.fromEntries(pending.map((request) => [request.requestId, String(request.requestedKg)]))
-      );
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load pending requests."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
+  const approvedKgFor = (request: FertilizerRequest) =>
+    editedKgById[request.requestId] ?? String(request.requestedKg);
 
   const review = async (
     request: FertilizerRequest,
     status: "APPROVED" | "REJECTED"
   ) => {
-    const rawAmount = approvedKgById[request.requestId];
+    const rawAmount = approvedKgFor(request);
     const approvedKg = Number(rawAmount);
 
     if (status === "APPROVED") {
@@ -96,8 +74,8 @@ export default function RequestApprovals() {
       toast.dismiss(toastId);
       if (status === "APPROVED") {
         toast.success("Request approved!", {
-          description: `${approvedKg}kg of ${request.fertilizerType} for ${request.farmerUsername}`,
-          icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+          description: `${formatKg(approvedKg)} of ${request.fertilizerType} for ${request.farmerUsername}`,
+          icon: <CheckCircle className="w-5 h-5 text-primary" />,
         });
       } else {
         toast.success("Request rejected.", {
@@ -108,7 +86,7 @@ export default function RequestApprovals() {
       toast.dismiss(toastId);
       toast.error(
         status === "APPROVED" ? "Could not approve the request." : "Could not reject the request.",
-        { description: describeError(error, "Please check server connection.") }
+        { description: describeApiError(error, "Please check server connection.") }
       );
     } finally {
       setSavingId(null);
@@ -126,10 +104,10 @@ export default function RequestApprovals() {
               Pending requests from farmers in your assigned area.
             </p>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-secondary/30 text-secondary-foreground text-sm font-medium rounded-full border border-secondary/20 w-fit">
+          <Badge variant="secondary" className="px-4 py-2 text-sm">
             <ClipboardCheck className="w-4 h-4" />
             {requests.length} awaiting review
-          </div>
+          </Badge>
         </div>
 
         <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
@@ -154,23 +132,16 @@ export default function RequestApprovals() {
               </TableHeader>
               <TableBody>
                 {loadError ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-destructive">
-                      {loadError}
-                    </TableCell>
-                  </TableRow>
+                  <TableErrorState columns={7} message={loadError} onRetry={loadRequests} />
                 ) : isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Loading pending requests...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={7} />
                 ) : requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      No pending requests in your area.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={7}
+                    icon={ClipboardCheck}
+                    title="No pending requests in your area"
+                    description="Applications from farmers assigned to your area land here for review."
+                  />
                 ) : (
                   requests.map((request) => {
                     const isSaving = savingId === request.requestId;
@@ -185,16 +156,16 @@ export default function RequestApprovals() {
                         </TableCell>
                         <TableCell className="py-4 px-6">{request.season}</TableCell>
                         <TableCell className="py-4 px-6">{request.fertilizerType}</TableCell>
-                        <TableCell className="py-4 px-6">{request.requestedKg}kg</TableCell>
+                        <TableCell className="py-4 px-6">{formatKg(request.requestedKg)}</TableCell>
                         <TableCell className="py-4 px-6">
                           <Input
                             type="number"
                             min="1"
                             max={request.requestedKg}
                             step="1"
-                            value={approvedKgById[request.requestId] ?? ""}
+                            value={approvedKgFor(request)}
                             onChange={(e) =>
-                              setApprovedKgById((current) => ({
+                              setEditedKgById((current) => ({
                                 ...current,
                                 [request.requestId]: e.target.value,
                               }))

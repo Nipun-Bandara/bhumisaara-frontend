@@ -1,24 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { isAxiosError } from "axios";
-import axiosInstance from "@/utils/axiosInstance";
-import apiPaths from "@/utils/apiPaths";
-import type { PendingCollection, Sack } from "@/lib/distribution";
+import { formatKg } from "@/utils/formatters";
+import { useOfficerProfile, useOfficerSacks } from "@/hooks/use-officer-profile";
+import { usePendingCollections } from "@/hooks/use-pending-collections";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import WalletAssets from "@/components/WalletAssets";
 import { ArrowRight, Flame, PackageOpen, Users } from "lucide-react";
-
-interface OfficerProfile {
-  userId: number;
-  username: string;
-  email: string;
-  areaId: number | null;
-  areaName: string | null;
-  district: string | null;
-}
 
 interface StockLine {
   fertilizerType: string;
@@ -26,46 +18,23 @@ interface StockLine {
   sackCount: number;
 }
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
 export default function AgrarianDashboard() {
   const router = useRouter();
 
-  const [profile, setProfile] = useState<OfficerProfile | null>(null);
-  const [sacks, setSacks] = useState<Sack[]>([]);
-  const [pending, setPending] = useState<PendingCollection[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const profileQuery = useOfficerProfile();
+  const sacksQuery = useOfficerSacks();
+  const pendingQuery = usePendingCollections();
+
+  const profile = profileQuery.data ?? null;
+  const sacks = sacksQuery.data;
+  const pending = pendingQuery.data;
+
+  const isLoading = profileQuery.isLoading || sacksQuery.isLoading || pendingQuery.isLoading;
+  const loadError = profileQuery.error ?? sacksQuery.error ?? pendingQuery.error;
 
   const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const [profileResponse, sacksResponse, pendingResponse] = await Promise.all([
-        axiosInstance.get<OfficerProfile>(apiPaths.officers.me),
-        axiosInstance.get<Sack[]>(apiPaths.sacks.mine),
-        axiosInstance.get<PendingCollection[]>(apiPaths.distributions.pending),
-      ]);
-
-      setProfile(profileResponse.data ?? null);
-      setSacks(sacksResponse.data || []);
-      setPending(pendingResponse.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load your centre's data."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    await Promise.all([profileQuery.refetch(), sacksQuery.refetch(), pendingQuery.refetch()]);
+  }, [profileQuery, sacksQuery, pendingQuery]);
 
   /** Real stock: the sacks physically in this officer's custody, by type. */
   const stockLines = useMemo<StockLine[]>(() => {
@@ -103,9 +72,11 @@ export default function AgrarianDashboard() {
         {/* Header Info */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-primary">
-              {isLoading ? "Loading your centre..." : centreName}
-            </h1>
+            {isLoading ? (
+              <Skeleton className="h-9 w-80" />
+            ) : (
+              <h1 className="text-3xl font-bold text-primary">{centreName}</h1>
+            )}
             <p className="text-lg text-muted-foreground">
               {profile?.district
                 ? `${profile.district} district · manage stock and hand over to verified farmers.`
@@ -129,7 +100,7 @@ export default function AgrarianDashboard() {
           </Card>
         )}
 
-        {!isLoading && !loadError && !profile?.areaId && (
+        {!isLoading && !loadError && profile && !profile.areaId && (
           <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-5 py-4 text-sm text-destructive">
             You are not assigned to an area yet, so no farmers appear in your queue. Ask a
             government administrator to assign you.
@@ -151,10 +122,10 @@ export default function AgrarianDashboard() {
                     <CardTitle className="text-2xl font-bold text-foreground">Digital Handover</CardTitle>
                   </div>
                   {!isLoading && pending.length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
+                    <Badge className="px-3 py-1 text-sm">
                       <Users className="w-4 h-4" />
                       {pending.length} waiting
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </CardHeader>
@@ -162,15 +133,23 @@ export default function AgrarianDashboard() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-muted-foreground">Farmers awaiting collection</span>
-                    <span className="text-4xl font-bold text-foreground tabular-nums">
-                      {isLoading ? "—" : pending.length}
-                    </span>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-16" />
+                    ) : (
+                      <span className="text-4xl font-bold text-foreground tabular-nums">
+                        {pending.length}
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-muted-foreground">Still owed to them</span>
-                    <span className="text-4xl font-bold text-foreground tabular-nums">
-                      {isLoading ? "—" : `${owedKg.toLocaleString()}kg`}
-                    </span>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-28" />
+                    ) : (
+                      <span className="text-4xl font-bold text-foreground tabular-nums">
+                        {formatKg(owedKg)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <p className="text-base text-muted-foreground">
@@ -200,12 +179,20 @@ export default function AgrarianDashboard() {
               </CardHeader>
               <CardContent className="pt-6 flex flex-col gap-6">
                 {isLoading ? (
-                  <p className="text-sm text-muted-foreground">Loading your stock...</p>
+                  <>
+                    <Skeleton className="h-36 w-full rounded-lg" />
+                    <Skeleton className="h-36 w-full rounded-lg" />
+                  </>
                 ) : stockLines.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No sacks in your custody. Stock appears here once the ministry transfers a batch
-                    to your wallet.
-                  </p>
+                  <div className="flex flex-col items-center text-center gap-2 py-8">
+                    <div className="p-3 rounded-full bg-muted text-muted-foreground">
+                      <PackageOpen className="w-6 h-6" />
+                    </div>
+                    <p className="text-base font-medium text-foreground">No sacks in your custody</p>
+                    <p className="text-sm text-muted-foreground">
+                      Stock appears here once the ministry transfers a batch to your wallet.
+                    </p>
+                  </div>
                 ) : (
                   stockLines.map((line) => (
                     <div

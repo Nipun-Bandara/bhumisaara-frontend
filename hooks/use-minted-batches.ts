@@ -43,7 +43,7 @@ export function useMintedBatches() {
   } = useQuery({
     queryKey: ["minted-batches"],
     queryFn: async () => {
-      const response = await axiosInstance.get<BackendBatch[]>(apiPaths.batches.save);
+      const response = await axiosInstance.get<BackendBatch[]>(apiPaths.batches.list);
       return response.data || [];
     },
   });
