@@ -6,6 +6,7 @@ import * as Yup from "yup";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Leaf, Upload, Camera, MapPin, Phone, BadgeCheck } from "lucide-react";
+import { toast } from "sonner";
 
 const validationSchema = Yup.object({
   producerName: Yup.string().required("Producer name is required"),
@@ -26,7 +27,7 @@ export default function OrganicProducerProfile() {
     validationSchema,
     onSubmit: (values) => {
       console.log("Profile Updated:", values);
-      alert("Profile updated successfully!");
+      toast.success("Profile updated successfully!");
     },
   });
 

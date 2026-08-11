@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Store, Upload, Camera, FileText } from "lucide-react";
+import { toast } from "sonner";
 
 const validationSchema = Yup.object({
   storeName: Yup.string().required("Store Name is required"),
@@ -29,7 +30,7 @@ export default function DealerProfile() {
     validationSchema,
     onSubmit: (values) => {
       console.log("Profile Updated:", values);
-      alert("Profile updated successfully!");
+      toast.success("Profile updated successfully!");
     },
   });
 

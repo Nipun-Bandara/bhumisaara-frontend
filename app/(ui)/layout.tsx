@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import { inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/thirdwebClient";
 import { polygonAmoy as amoy } from "thirdweb/chains";
+import { useWalletAddressSync } from "@/hooks/use-wallet-address-sync";
 
 const ConnectButton = dynamic(
     () => import("thirdweb/react").then((mod) => mod.ConnectButton),
@@ -27,6 +28,9 @@ export default function DashboardLayout({
     const router = useRouter();
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+
+    // Links the connected wallet to the signed-in user on first connect.
+    useWalletAddressSync();
 
     useEffect(() => {
         setMounted(true);

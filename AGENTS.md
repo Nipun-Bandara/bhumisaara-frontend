@@ -44,13 +44,15 @@ Welcome to the **Bhumisaara** Web2.5 Agrarian Management Platform codebase. This
 bhumisaara-frontend/
 ├── app/                        # Next.js App Router Pages & Layouts
 │   ├── (ui)/                   # Authenticated UI Route Group
-│   │   ├── application-form/   # Farmer Subsidy Application
-│   │   ├── applications-history/
+│   │   ├── application-form/   # Farmer: submit a fertilizer subsidy application
+│   │   ├── applications-history/ # Role switchboard: farmer sees own applications, officer sees their whole area
 │   │   ├── dashboard/          # Dynamic Role-based Dashboard Router
 │   │   ├── distribution-level/ # Government Distribution Overview
 │   │   ├── import-history/     # National Import History Ledger
 │   │   ├── inventory/          # Agro-Dealer Stock Management
+│   │   ├── officer-assign/     # Government: assign officers to areas
 │   │   ├── own-distribution/   # Agrarian Officer Local Distribution
+│   │   ├── request-approvals/  # Officer: review farmer fertilizer requests
 │   │   └── profile/            # User Profile Settings
 │   ├── auth/                   # Authentication Pages (Login/Register)
 │   ├── globals.css             # Tailwind v4 Global CSS & Design System

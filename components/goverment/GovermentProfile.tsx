@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { User, Upload, Camera, Building2 } from "lucide-react";
+import { toast } from "sonner";
 
 const validationSchema = Yup.object({
   fullName: Yup.string().required("Full Name is required"),
@@ -29,7 +30,7 @@ export default function GovermentProfile() {
     validationSchema,
     onSubmit: (values) => {
       console.log("Profile Updated:", values);
-      alert("Profile updated successfully!");
+      toast.success("Profile updated successfully!");
     },
   });
 
