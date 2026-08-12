@@ -17,7 +17,7 @@ This project runs Next.js 16, which has breaking changes vs. what's in your trai
 - If you import `unstable_cacheLife`/`unstable_cacheTag`: use the now-stable `cacheLife`/`cacheTag` (no prefix).
 - Parallel route slots (`@slot`) now require an explicit `default.js`/`default.tsx`, or the build fails.
 
-**Important local quirk:** `next.config.ts` sets `typescript: { ignoreBuildErrors: true }`, so `npm run build` succeeds even with type errors. Don't treat a green build as proof of type safety — run `npx tsc --noEmit` for real signal.
+**Important local quirk:** `next.config.ts` still sets `typescript: { ignoreBuildErrors: true }`, but now only for two known files (see §8). `npm run build` therefore still succeeds with type errors in those — run `npx tsc --noEmit` for real signal.
 <!-- END:nextjs-agent-rules -->
 
 # Bhumisaara Frontend — Developer & AI Agent Guidelines
@@ -34,7 +34,7 @@ Welcome to the **Bhumisaara** Web2.5 Agrarian Management Platform codebase. This
 - **QR**: `html5-qrcode` for camera scanning (sack serials, officer wallets), `qrcode.react` (`QRCodeSVG`) for printed sack labels
 - **State & Context**: React Context (`AuthContext.tsx`) for session & role management
 - **Forms & Validation**: Formik + Yup
-- **API & HTTP Client**: Axios (`axiosInstance.ts`) connected to a Spring Boot REST API (`http://localhost:8080/api`)
+- **API & HTTP Client**: Axios (`axiosInstance.ts`) connected to a Spring Boot REST API (`http://localhost:8080/api/v1`)
 - **UI Components & Feedback**: shadcn/ui components (`components/ui/`), Sonner Toast notifications (`sonner`)
 
 ---
@@ -68,21 +68,35 @@ bhumisaara-frontend/
 │   ├── landing/                # Public Landing Page Components
 │   ├── organic-producer/       # Organic Producer Views
 │   ├── private-dealer/         # Agro-Dealer Inventory Views
-│   └── ui/                     # Shared Reusable Primitives (Button, Input, Select, Table, etc.)
+│   ├── ui/                     # Shared Reusable Primitives (Button, Badge, Table, table-states, etc.)
+│   ├── ProfileDetailsForm.tsx  # The one profile form, shared by every role
+│   ├── RequestStatusBadge.tsx  # The one fertilizer-request status pill
+│   └── WalletAssets.tsx        # On-chain batch tokens held by the connected wallet
 ├── context/                    # React Contexts (AuthContext.tsx)
-├── hooks/                      # Shared React Hooks
+├── hooks/                      # Shared React Hooks — one per backend resource
+│   ├── use-api-resource.ts     # The shared GET wrapper: {data,isLoading,error,refetch}
+│   ├── use-area-demand.ts      # Government: outstanding demand per area
+│   ├── use-batch-sacks.ts      # Sacks of one batch (label sheet, scan validation)
+│   ├── use-batches.ts          # Registered fertilizer batches
 │   ├── use-distribution-levels.ts # Batches + area demand + transfer ledger, aggregated
-│   ├── use-farmer-collections.ts  # Handovers the signed-in farmer has received
+│   ├── use-distributions.ts    # Officer / farmer / national handover history
+│   ├── use-fertilizer-requests.ts # Farmer's own, officer's pending, officer's area
+│   ├── use-officer-profile.ts  # The officer's own profile + the sacks they hold
+│   ├── use-pending-collections.ts # Farmers awaiting collection in the officer's area
+│   ├── use-transfers.ts        # Admin → officer transfer ledger
 │   ├── use-minted-batches.ts   # On-chain NFTs joined with backend batch metadata
+│   ├── use-my-profile.ts       # The signed-in user's own account + profile details
 │   └── use-mobile.ts           # Mobile Breakpoint Detection
 ├── lib/                        # Core Utilities & Thirdweb Setup
 │   ├── contract.ts             # Thirdweb Contract Instance (ERC-1155)
-│   ├── distribution.ts         # Shared batch/sack/demand/transfer DTO shapes + kg formatters
+│   ├── distribution.ts         # Shared batch/sack/demand/transfer/handover DTO shapes
 │   ├── navigation.ts           # Navigation Registry & Role Permission Mapping
 │   ├── thirdwebClient.ts       # Thirdweb Client Instance
 │   └── utils.ts                # Tailwind Class Merger Utility (`cn`)
 ├── utils/                      # Extended Utilities
-│   ├── apiPaths.ts             # Centralized API Endpoint Map
+│   ├── apiError.ts             # describeApiError — backend message first
+│   ├── apiPaths.ts             # Centralized API Endpoint Map (version lives in the base URL)
+│   ├── formatters.ts           # kg / tonnes / date / address / hash formatting
 │   └── axiosInstance.ts        # Configured Axios Instance with Auth Interceptors
 └── AGENTS.md                   # Repository Rules & Conventions for AI Agents
 ```
@@ -161,7 +175,12 @@ transfer step. Do not add one.
 ## 5. Backend REST API Integration
 
 - **Axios Client**: Always import `@/utils/axiosInstance` for API requests.
-- **Endpoint Registry**: Use `@/utils/apiPaths` for API path constants.
+- **Endpoint Registry**: Use `@/utils/apiPaths` for API path constants. The version lives in the base URL — `NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1`, matching the backend's `server.servlet.context-path` — so entries are plain (`/batches`, `/auth/login`) and never repeat `/api` or `/v1`.
+- **Fetching**: don't hand-roll `useState` + `useEffect` + `try/catch`. Use the resource hooks in `hooks/` (`useBatches`, `useAreaDemand`, `usePendingCollections`, `useOfficerDistributions`, `useFarmerDistributions`, `useMyFertilizerRequests`, …). They wrap `useApiResource`, which is built on the `@tanstack/react-query` that `use-minted-batches.ts` already used, and return `{ data, isLoading, error, refetch }`. For a new endpoint, add a hook rather than fetching inline.
+- **Errors**: `describeApiError(error, fallback)` from `@/utils/apiError` — it prefers the backend's `ErrorResponse.message`, which names the sack or quota that failed.
+- **Formatting**: `@/utils/formatters` — `formatKg`, `formatTonnes`, `formatDate`, `formatDateTime`, `truncateAddress`, `truncateHash`. Don't re-declare these per component.
+- **Table states**: `TableSkeletonRows`, `TableEmptyState`, `TableErrorState` from `@/components/ui/table-states` — the skeleton's `columns` must match the real header count.
+- **Status pills**: `@/components/ui/badge`. `success` / `warning` / `info` carry explicit light/dark pairs because the palette has no token for them; everything else uses semantic tokens.
 - **JWT Authorization**: `axiosInstance` automatically attaches `Authorization: Bearer <token>` from `localStorage`.
 - **401 Interception**: Clears local storage session on authentication expiration.
 
@@ -203,15 +222,16 @@ Read this before grepping the repo for the same answers — it saves a round-tri
   - `components/ui/` primitives use **lowercase** filenames (`button.tsx`, `sidebar.tsx`, `sonner.tsx` — shadcn convention). The old PascalCase versions (`Button.tsx`, `Sidebar.tsx`, `Sonner.tsx`) were deleted; don't reintroduce that casing.
   - On-chain NFT data + backend batch metadata are joined once in `@/hooks/use-minted-batches.ts` (its `records` return value). Reuse it instead of re-joining `getNFTs()` output with backend data inside a component.
   - Batch / sack / area-demand / transfer / handover DTO shapes live in `@/lib/distribution.ts` — import the types, don't redeclare them per component.
-  - The farmer's received handovers are fetched once in `@/hooks/use-farmer-collections.ts` (farmer dashboard + application history both read it).
+  - The signed-in user's own account is `@/hooks/use-my-profile.ts`, and the profile form itself is `@/components/ProfileDetailsForm.tsx` — every role's profile screen renders that one component with different labels. Don't fork it per role; the three fields (full name, address, contact number) are the same everywhere. The farmer's Service Area section stays separate because it writes to its own endpoint.
+  - **No file uploads exist.** Nothing on the backend stores a photo or document, so the profile screens deliberately show no upload control — an input that silently discards a file is worse than none.
   - The fertilizer-request status pill is `@/components/RequestStatusBadge.tsx`. It was duplicated verbatim in the farmer and officer history screens; adding a `RequestStatus` meant editing both. Don't fork it again.
   - The national distribution figures (totals, per-type, per-district, per-area, recent transfers) are fetched and aggregated once in `@/hooks/use-distribution-levels.ts`. `DistributionLevel.tsx` is purely presentational on top of it. Every number it renders comes from `GET /api/batches`, `GET /api/v1/transfers/demand` or `GET /api/v1/transfers` — if a metric has no endpoint behind it (farmer collections, dealer stock, warehouse capacity), it is **not** on the screen rather than mocked.
   - `fertilizer_batches.volume_kg` is mint volume **less farmer collections** — transfers to officers deliberately don't consume it. Label it "stock on record", never "total imports".
 - **No automated test suite exists** in this repo (no Jest/Vitest config, no `*.test.*`/`*.spec.*` files). Don't spend time hunting for one.
 - **Known pre-existing issues, unrelated to typical feature work — don't fix opportunistically, only if the user asks:**
-  - `components/DotGrid.tsx` has multiple implicit-`any`/untyped-ref TS errors.
+  - `components/DotGrid.tsx` has 43 implicit-`any`/untyped-ref TS errors. It **is** used — it draws the auth page background — so don't delete it.
   - `components/private-dealer/DealerInventory.tsx` has a Base UI `Select` `onValueChange` typing mismatch.
-  - `app/(ui)/profile/page.tsx` references `AuthUser.roles`, which doesn't exist (the type only has `role`).
+  - These two are the only reason `next.config.ts` still sets `typescript.ignoreBuildErrors`; `npx tsc --noEmit` is clean once they're excluded. Fix both and the flag can go.
 - **Required env vars** (see `.env.development`): `NEXT_PUBLIC_API_URL` (Spring Boot backend base URL), `NEXT_PUBLIC_CONTRACT_ADDRESS` (ERC-1155 contract), `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`.
 - **Dev/preview server**: `.claude/launch.json` runs `npm run dev` on port 3000 for browser-based preview tools.
 - **Don't read/grep in full**: `node_modules/`, `.next/`, `package-lock.json`. If you need one specific package's behavior, target that package's file directly rather than searching the whole tree.

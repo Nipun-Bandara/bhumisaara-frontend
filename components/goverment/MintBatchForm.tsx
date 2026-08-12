@@ -107,21 +107,18 @@ export default function MintBatchForm() {
 
       const transactionHash = receipt.transactionHash;
       const tokenId = extractTokenId(receipt);
-      const mintedByUserId = Number(user.id);
 
+      // No mintedByUserId — the backend takes the minting admin from the JWT.
       const payload = {
         tokenId,
         transactionHash,
         importerName: importerName.trim(),
         fertilizerType,
         volumeKg: Number(volumeKg),
-        mintedByUserId,
       };
 
-      console.log("Submitting payload to backend:", payload);
-
       // Save metadata to Spring Boot backend API
-      await axiosInstance.post(apiPaths.batches.save, payload);
+      await axiosInstance.post(apiPaths.batches.create, payload);
 
       // Refresh the on-chain NFT list and backend batch metadata so this
       // new batch shows up immediately in the dashboard/history tables.
@@ -130,7 +127,7 @@ export default function MintBatchForm() {
       toast.dismiss(toastId);
       toast.success("Batch successfully minted & metadata saved!", {
         description: `Token ID #${tokenId} | Tx: ${transactionHash.substring(0, 10)}...`,
-        icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        icon: <CheckCircle className="w-5 h-5 text-primary" />,
       });
 
       // Reset form state upon successful completion

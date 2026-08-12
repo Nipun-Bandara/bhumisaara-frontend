@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { isAxiosError } from "axios";
+import { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
-import type { Batch, Sack } from "@/lib/distribution";
+import { describeApiError } from "@/utils/apiError";
+import { formatKg } from "@/utils/formatters";
+import { useBatches } from "@/hooks/use-batches";
+import { useBatchSacks } from "@/hooks/use-batch-sacks";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Sack } from "@/lib/distribution";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,13 +21,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Printer, QrCode } from "lucide-react";
-
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
 
 /**
  * Only the label sheet reaches the printer — the sidebar, headers and controls
@@ -45,69 +42,23 @@ const PRINT_STYLES = `
 `;
 
 export default function SackLabels() {
-  const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
-  const [sacks, setSacks] = useState<Sack[]>([]);
-
-  const [isBatchesLoading, setIsBatchesLoading] = useState(true);
-  const [isSacksLoading, setIsSacksLoading] = useState(false);
   const [isBackfilling, setIsBackfilling] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchBatches = async () => {
-      try {
-        const response = await axiosInstance.get<Batch[]>(apiPaths.batches.save);
-        if (!cancelled) setBatches(response.data || []);
-      } catch (error) {
-        if (!cancelled) {
-          toast.error("Could not load minted batches.", {
-            description: describeError(error, "Please check server connection."),
-          });
-        }
-      } finally {
-        if (!cancelled) setIsBatchesLoading(false);
-      }
-    };
-
-    fetchBatches();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: batches, isLoading: isBatchesLoading } = useBatches();
 
   const selectedBatch = useMemo(
     () => batches.find((batch) => String(batch.batchId) === selectedBatchId) ?? null,
     [batches, selectedBatchId]
   );
 
-  const loadSacks = useCallback(async (batchId: number) => {
-    setIsSacksLoading(true);
+  const {
+    data: sacks,
+    isLoading: isSacksLoading,
+    refetch: refetchSacks,
+  } = useBatchSacks(selectedBatch?.batchId ?? null);
 
-    try {
-      const response = await axiosInstance.get<Sack[]>(apiPaths.sacks.byBatch(batchId));
-      setSacks(response.data || []);
-    } catch (error) {
-      setSacks([]);
-      toast.error("Could not load the sacks for this batch.", {
-        description: describeError(error, "Please check server connection."),
-      });
-    } finally {
-      setIsSacksLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!selectedBatch) return;
-    loadSacks(selectedBatch.batchId);
-  }, [selectedBatch, loadSacks]);
-
-  /** Dropping the old labels with the selection avoids printing the wrong batch. */
-  const selectBatch = (batchId: string) => {
-    setSelectedBatchId(batchId);
-    setSacks([]);
-  };
+  const selectBatch = (batchId: string) => setSelectedBatchId(batchId);
 
   /** Batches minted before sacks existed have none until they're backfilled. */
   const handleBackfill = async () => {
@@ -120,14 +71,14 @@ export default function SackLabels() {
       const response = await axiosInstance.post<Sack[]>(
         apiPaths.sacks.backfill(selectedBatch.batchId)
       );
-      setSacks(response.data || []);
+      await refetchSacks();
 
       toast.dismiss(toastId);
       toast.success(`Generated ${response.data?.length ?? 0} sacks.`);
     } catch (error) {
       toast.dismiss(toastId);
       toast.error("Could not generate sacks.", {
-        description: describeError(error, "Please check server connection."),
+        description: describeApiError(error, "Please check server connection."),
       });
     } finally {
       setIsBackfilling(false);
@@ -219,7 +170,8 @@ export default function SackLabels() {
 
             {selectedBatch && sacks.length > 0 && (
               <p className="text-sm text-muted-foreground">
-                {sacks.length} labels · {sacks.reduce((total, sack) => total + sack.weightKg, 0)}kg total
+                {sacks.length} labels ·{" "}
+                {formatKg(sacks.reduce((total, sack) => total + sack.weightKg, 0))} total
               </p>
             )}
           </CardContent>
@@ -228,10 +180,16 @@ export default function SackLabels() {
         {/* The printable sheet */}
         <div id="sack-label-sheet">
           {isSacksLoading ? (
-            <p className="text-sm text-muted-foreground print:hidden">Loading sacks...</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 print:hidden">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Skeleton key={index} className="h-56 rounded-lg" />
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {sacks.map((sack) => (
+                // Literal black-on-white on purpose: these are printed labels,
+                // and a scanner needs the same contrast whatever theme is on screen.
                 <div
                   key={sack.sackId}
                   className="sack-label border border-black/60 rounded-lg p-3 flex flex-col items-center gap-2 bg-white text-black"

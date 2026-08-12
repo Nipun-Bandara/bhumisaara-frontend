@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { isAxiosError } from "axios";
-import axiosInstance from "@/utils/axiosInstance";
-import apiPaths from "@/utils/apiPaths";
+import { formatDate, formatKg } from "@/utils/formatters";
+import { useAreaFertilizerRequests } from "@/hooks/use-fertilizer-requests";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -22,11 +23,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ClipboardCheck, Clock } from "lucide-react";
+import { ClipboardCheck, Clock, FileText } from "lucide-react";
 import RequestStatusBadge from "@/components/RequestStatusBadge";
-import type { FertilizerRequest } from "@/lib/fertilizerRequests";
+import type { RequestStatus } from "@/lib/fertilizerRequests";
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
+const STATUS_FILTERS: { value: RequestStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All statuses" },
   { value: "PENDING", label: "Pending" },
   { value: "APPROVED", label: "Approved" },
@@ -35,43 +36,15 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: "COLLECTED", label: "Collected" },
 ];
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
-const formatDate = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
-
 export default function AreaApplicationsHistory() {
-  const [requests, setRequests] = useState<FertilizerRequest[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<RequestStatus | "ALL">("ALL");
 
-  const loadRequests = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const response = await axiosInstance.get<FertilizerRequest[]>(
-        apiPaths.fertilizerRequests.area,
-        // Omitting the param entirely returns every status.
-        statusFilter === "ALL" ? undefined : { params: { status: statusFilter } }
-      );
-      setRequests(response.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load applications for your area."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [statusFilter]);
-
-  useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
+  const {
+    data: requests,
+    isLoading,
+    error: loadError,
+    refetch: loadRequests,
+  } = useAreaFertilizerRequests(statusFilter);
 
   const areaLabel = useMemo(() => {
     const withArea = requests.find((request) => request.areaName);
@@ -97,10 +70,10 @@ export default function AreaApplicationsHistory() {
           </div>
           <div className="flex items-center gap-3">
             {pendingCount > 0 && statusFilter !== "PENDING" && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-400 text-sm font-medium rounded-full w-fit">
+              <Badge variant="warning" className="px-4 py-2 text-sm">
                 <Clock className="w-4 h-4" />
                 {pendingCount} still pending
-              </div>
+              </Badge>
             )}
             <Link
               href="/request-approvals"
@@ -118,7 +91,9 @@ export default function AreaApplicationsHistory() {
             <div className="flex items-center gap-3">
               <Select
                 value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value ? String(value) : "ALL")}
+                onValueChange={(value) =>
+                  setStatusFilter(value ? (String(value) as RequestStatus | "ALL") : "ALL")
+                }
                 disabled={isLoading}
               >
                 <SelectTrigger className="w-[170px] h-9 bg-background">
@@ -159,28 +134,24 @@ export default function AreaApplicationsHistory() {
               </TableHeader>
               <TableBody>
                 {loadError ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
-                      <p className="text-destructive mb-3">{loadError}</p>
-                      <Button variant="outline" size="sm" onClick={loadRequests}>
-                        Retry
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <TableErrorState columns={9} message={loadError} onRetry={loadRequests} />
                 ) : isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      Loading applications...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={9} />
                 ) : requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
-                      {statusFilter === "ALL"
-                        ? "No applications from farmers in your area yet."
-                        : `No ${statusFilter.toLowerCase()} applications in your area.`}
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={9}
+                    icon={FileText}
+                    title={
+                      statusFilter === "ALL"
+                        ? "No applications in your area yet"
+                        : `No ${statusFilter.replace("_", " ").toLowerCase()} applications`
+                    }
+                    description={
+                      statusFilter === "ALL"
+                        ? "Applications appear here as soon as a farmer assigned to your area submits one."
+                        : "Try a different status filter to see the rest of your area's applications."
+                    }
+                  />
                 ) : (
                   requests.map((request) => (
                     <TableRow
@@ -195,9 +166,9 @@ export default function AreaApplicationsHistory() {
                       </TableCell>
                       <TableCell className="py-4 px-6">{request.season}</TableCell>
                       <TableCell className="py-4 px-6">{request.fertilizerType}</TableCell>
-                      <TableCell className="py-4 px-6">{request.requestedKg}kg</TableCell>
+                      <TableCell className="py-4 px-6">{formatKg(request.requestedKg)}</TableCell>
                       <TableCell className="py-4 px-6 font-medium text-foreground">
-                        {request.approvedKg != null ? `${request.approvedKg}kg` : "—"}
+                        {request.approvedKg != null ? formatKg(request.approvedKg) : "—"}
                       </TableCell>
                       <TableCell className="py-4 px-6 text-muted-foreground">
                         {request.reviewedByOfficerUsername ?? "—"}

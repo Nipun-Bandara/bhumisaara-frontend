@@ -56,7 +56,7 @@ export default function ApplicationForm() {
       toast.dismiss(toastId);
       toast.success("Application submitted for approval!", {
         description: `${parsedKg}kg of ${fertilizerType} for ${season}`,
-        icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        icon: <CheckCircle className="w-5 h-5 text-primary" />,
       });
 
       setSeason("");

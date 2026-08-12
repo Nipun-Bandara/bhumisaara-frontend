@@ -26,7 +26,6 @@ export default function OrganicProducerProfile() {
     },
     validationSchema,
     onSubmit: (values) => {
-      console.log("Profile Updated:", values);
       toast.success("Profile updated successfully!");
     },
   });

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { isAxiosError } from "axios";
-import axiosInstance from "@/utils/axiosInstance";
-import apiPaths from "@/utils/apiPaths";
-import type { DistributionRecord } from "@/lib/distribution";
+import { useMemo } from "react";
+import { useOfficerDistributions } from "@/hooks/use-distributions";
+import { formatDateTime, formatKg } from "@/utils/formatters";
 import TxHashBadge from "@/components/goverment/TxHashBadge";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import {
   Table,
   TableBody,
@@ -17,38 +17,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, Package, RefreshCw } from "lucide-react";
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
-const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-
 export default function OwnDistribution() {
-  const [distributions, setDistributions] = useState<DistributionRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const loadDistributions = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const response = await axiosInstance.get<DistributionRecord[]>(apiPaths.distributions.officer);
-      setDistributions(response.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load your distribution history."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadDistributions();
-  }, [loadDistributions]);
+  const {
+    data: distributions,
+    isLoading,
+    error: loadError,
+    refetch: loadDistributions,
+  } = useOfficerDistributions();
 
   const totals = useMemo(() => {
     const dispensedKg = distributions.reduce(
@@ -73,11 +48,11 @@ export default function OwnDistribution() {
           </div>
           <div className="flex items-center gap-3">
             {!isLoading && distributions.length > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-secondary/30 text-secondary-foreground text-sm font-medium rounded-full border border-secondary/20 w-fit">
+              <Badge variant="secondary" className="px-4 py-2 text-sm">
                 <Package className="w-4 h-4" />
-                {totals.dispensedKg.toLocaleString()}kg over {distributions.length}{" "}
+                {formatKg(totals.dispensedKg)} over {distributions.length}{" "}
                 {distributions.length === 1 ? "handover" : "handovers"}
-              </div>
+              </Badge>
             )}
             <Button
               variant="outline"
@@ -116,26 +91,16 @@ export default function OwnDistribution() {
               </TableHeader>
               <TableBody>
                 {loadError ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      <p className="text-destructive mb-3">{loadError}</p>
-                      <Button variant="outline" size="sm" onClick={loadDistributions}>
-                        Retry
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <TableErrorState columns={7} message={loadError} onRetry={loadDistributions} />
                 ) : isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Loading distribution history...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={7} />
                 ) : distributions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      No handovers recorded yet.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={7}
+                    icon={Package}
+                    title="No handovers recorded yet"
+                    description="Once you dispense fertilizer to a farmer, every handover appears here with its burn transaction."
+                  />
                 ) : (
                   distributions.map((record) => (
                     <TableRow
@@ -152,7 +117,7 @@ export default function OwnDistribution() {
                       </TableCell>
                       <TableCell className="py-4 px-6">{record.fertilizerType ?? "—"}</TableCell>
                       <TableCell className="py-4 px-6 text-right tabular-nums font-medium text-foreground">
-                        {record.amountDispensedKg}kg
+                        {formatKg(record.amountDispensedKg)}
                       </TableCell>
                       <TableCell className="py-4 px-6">
                         <div className="flex flex-wrap gap-1">
@@ -175,22 +140,22 @@ export default function OwnDistribution() {
                       </TableCell>
                       <TableCell className="py-4 px-6">
                         {record.disputed ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-900 dark:bg-red-500/20 dark:text-red-400"
+                          <Badge
+                            variant="destructive"
                             title={
                               record.disputedAt
                                 ? `Disputed on ${formatDateTime(record.disputedAt)}`
                                 : undefined
                             }
                           >
-                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <AlertTriangle />
                             Disputed by farmer
-                          </span>
+                          </Badge>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400">
-                            <CheckCircle className="w-3.5 h-3.5" />
+                          <Badge variant="success">
+                            <CheckCircle />
                             Completed
-                          </span>
+                          </Badge>
                         )}
                       </TableCell>
                     </TableRow>

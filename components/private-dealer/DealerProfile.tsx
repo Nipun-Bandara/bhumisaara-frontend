@@ -29,7 +29,6 @@ export default function DealerProfile() {
     },
     validationSchema,
     onSubmit: (values) => {
-      console.log("Profile Updated:", values);
       toast.success("Profile updated successfully!");
     },
   });

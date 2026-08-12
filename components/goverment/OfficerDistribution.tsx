@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isAxiosError } from "axios";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useActiveAccount, useReadContract, useSendTransaction } from "thirdweb/react";
 import { balanceOf, safeTransferFrom } from "thirdweb/extensions/erc1155";
 import { waitForReceipt } from "thirdweb";
@@ -9,8 +8,14 @@ import { contract } from "@/lib/contract";
 import { client } from "@/lib/thirdwebClient";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
-import type { AreaDemand, Batch, Sack } from "@/lib/distribution";
+import { describeApiError } from "@/utils/apiError";
+import { formatKg } from "@/utils/formatters";
+import { useAreaDemand } from "@/hooks/use-area-demand";
+import { useBatches } from "@/hooks/use-batches";
+import { useBatchSacks } from "@/hooks/use-batch-sacks";
+import type { AreaDemand, Sack } from "@/lib/distribution";
 import { ScanField } from "@/components/goverment/QrScanner";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,13 +62,6 @@ const ADDRESS_PATTERN = /0x[a-fA-F0-9]{40}/;
 
 const demandKey = (row: AreaDemand) => `${row.areaId}|${row.fertilizerType}`;
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
 /** A sack QR may carry a URL or prefix; the serial itself is what matters. */
 const extractSerial = (scanned: string) => {
   const normalised = scanned.trim().toUpperCase();
@@ -87,18 +85,19 @@ export default function OfficerDistribution() {
   const account = useActiveAccount();
   const { mutateAsync: sendTransaction, isPending: isTxPending } = useSendTransaction();
 
-  const [demand, setDemand] = useState<AreaDemand[]>([]);
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const demandQuery = useAreaDemand();
+  const batchesQuery = useBatches();
+
+  const demand = demandQuery.data;
+  const batches = batchesQuery.data;
+  const isLoading = demandQuery.isLoading || batchesQuery.isLoading;
+  const loadError = demandQuery.error ?? batchesQuery.error;
 
   // Stage 1
   const [selectedKey, setSelectedKey] = useState<string>("");
 
   // Stage 2
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
-  const [batchSacks, setBatchSacks] = useState<Sack[]>([]);
-  const [isSacksLoading, setIsSacksLoading] = useState(false);
   const [scannedSerials, setScannedSerials] = useState<string[]>([]);
 
   // Stage 3
@@ -117,27 +116,8 @@ export default function OfficerDistribution() {
   const pendingTransferRef = useRef<PendingTransfer | null>(null);
 
   const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const [demandResponse, batchesResponse] = await Promise.all([
-        axiosInstance.get<AreaDemand[]>(apiPaths.transfers.demand),
-        axiosInstance.get<Batch[]>(apiPaths.batches.save),
-      ]);
-
-      setDemand(demandResponse.data || []);
-      setBatches(batchesResponse.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load area demand."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    await Promise.all([demandQuery.refetch(), batchesQuery.refetch()]);
+  }, [demandQuery, batchesQuery]);
 
   const sortedDemand = useMemo(
     () => [...demand].sort((a, b) => b.outstandingKg - a.outstandingKg),
@@ -170,10 +150,9 @@ export default function OfficerDistribution() {
     setScannedWallet(null);
   }, []);
 
-  /** Clearing the sacks with the selection keeps a stale list from being scanned against. */
+  /** Clearing the scans with the selection keeps a stale list from being submitted. */
   const selectBatch = useCallback((batchId: string) => {
     setSelectedBatchId(batchId);
-    setBatchSacks([]);
     setScannedSerials([]);
   }, []);
 
@@ -187,35 +166,9 @@ export default function OfficerDistribution() {
 
   // Sack weights and statuses come from the backend so a scan can be judged
   // (unknown / wrong batch / already gone) before anything is signed.
-  useEffect(() => {
-    if (!selectedBatch) return;
-
-    let cancelled = false;
-    setIsSacksLoading(true);
-
-    const fetchSacks = async () => {
-      try {
-        const response = await axiosInstance.get<Sack[]>(
-          apiPaths.sacks.byBatch(selectedBatch.batchId)
-        );
-        if (!cancelled) setBatchSacks(response.data || []);
-      } catch (error) {
-        if (!cancelled) {
-          setBatchSacks([]);
-          toast.error("Could not load the sacks for this batch.", {
-            description: describeError(error, "Please check server connection."),
-          });
-        }
-      } finally {
-        if (!cancelled) setIsSacksLoading(false);
-      }
-    };
-
-    fetchSacks();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedBatch]);
+  const { data: batchSacks, isLoading: isSacksLoading } = useBatchSacks(
+    selectedBatch?.batchId ?? null
+  );
 
   const sackBySerial = useMemo(() => {
     const map = new Map<string, Sack>();
@@ -320,7 +273,7 @@ export default function OfficerDistribution() {
     setWalletConfirmed(true);
     setWalletError(null);
     toast.success("Officer wallet confirmed.", {
-      icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+      icon: <CheckCircle className="w-5 h-5 text-primary" />,
     });
   };
 
@@ -358,7 +311,7 @@ export default function OfficerDistribution() {
       toast.dismiss(toastId);
       toast.success("Stock transferred to the officer.", {
         description: `${pending.amountKg}kg · ${pending.sackSerials.length} sacks → ${pending.officerName} (${pending.areaLabel})`,
-        icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+        icon: <CheckCircle className="w-5 h-5 text-primary" />,
       });
 
       pendingTransferRef.current = null;
@@ -370,7 +323,7 @@ export default function OfficerDistribution() {
       // The tokens have already moved on-chain. Losing this hash would leave a
       // transfer nobody can reconcile, so it goes on screen until dismissed.
       toast.error("Tokens transferred on-chain, but the registry save failed.", {
-        description: `Record this transaction hash manually: ${transactionHash} — ${describeError(
+        description: `Record this transaction hash manually: ${transactionHash} — ${describeApiError(
           error,
           "Please check server connection."
         )}`,
@@ -424,7 +377,7 @@ export default function OfficerDistribution() {
       pendingTransferRef.current = null;
       console.error("Transfer Transaction Error:", error);
       toast.error("Blockchain transfer transaction failed.", {
-        description: describeError(error, "User denied or transaction reverted."),
+        description: describeApiError(error, "User denied or transaction reverted."),
       });
     }
   };
@@ -448,16 +401,9 @@ export default function OfficerDistribution() {
           )}
         </div>
 
-        {loadError ? (
-          <Card className="border-destructive/40 shadow-sm">
-            <CardContent className="pt-6 flex flex-col items-start gap-4">
-              <p className="text-base text-destructive">{loadError}</p>
-              <Button variant="outline" onClick={loadData}>
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
+        {/* A failed load is surfaced inside the queue table rather than
+            replacing the page, so the stage layout never jumps around. */}
+        <>
           <>
             {/* ─── Stage 1: pick the area ─────────────────────────────────── */}
             <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
@@ -482,18 +428,17 @@ export default function OfficerDistribution() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                          Loading area demand...
-                        </TableCell>
-                      </TableRow>
+                    {loadError ? (
+                      <TableErrorState columns={7} message={loadError} onRetry={loadData} />
+                    ) : isLoading ? (
+                      <TableSkeletonRows columns={7} />
                     ) : sortedDemand.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                          No approved requests yet — nothing to distribute.
-                        </TableCell>
-                      </TableRow>
+                      <TableEmptyState
+                        columns={7}
+                        icon={MapPin}
+                        title="Nothing to distribute yet"
+                        description="Areas appear here once their officer approves a farmer's fertilizer request."
+                      />
                     ) : (
                       sortedDemand.map((row) => {
                         const key = demandKey(row);
@@ -519,13 +464,13 @@ export default function OfficerDistribution() {
                             </TableCell>
                             <TableCell className="py-4 px-6">{row.fertilizerType}</TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums">
-                              {row.approvedKg}kg
+                              {formatKg(row.approvedKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums text-muted-foreground">
-                              {row.transferredKg}kg
+                              {formatKg(row.transferredKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums font-semibold text-foreground">
-                              {row.outstandingKg}kg
+                              {formatKg(row.outstandingKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6">
                               {row.officerName ? (
@@ -666,7 +611,7 @@ export default function OfficerDistribution() {
                                 <span className="font-mono text-sm text-foreground">{serial}</span>
                                 <div className="flex items-center gap-4">
                                   <span className="text-sm text-muted-foreground tabular-nums">
-                                    {sackBySerial.get(serial)?.weightKg ?? 0}kg
+                                    {formatKg(sackBySerial.get(serial)?.weightKg ?? 0)}
                                   </span>
                                   <Button
                                     type="button"
@@ -730,7 +675,7 @@ export default function OfficerDistribution() {
                     />
 
                     {walletConfirmed && (
-                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+                      <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
                         <CheckCircle className="w-4 h-4" />
                         Wallet confirmed — this is the officer serving this area.
                       </div>
@@ -798,7 +743,7 @@ export default function OfficerDistribution() {
               </CardContent>
             </Card>
           </>
-        )}
+        </>
       </main>
     </div>
   );

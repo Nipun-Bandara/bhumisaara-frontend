@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useDistributionLevels } from "@/hooks/use-distribution-levels";
-import { coveragePct, formatKg, formatTonnes } from "@/lib/distribution";
+import { coveragePct } from "@/lib/distribution";
+import { formatKg, formatTonnes } from "@/utils/formatters";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableEmptyState, TableSkeletonRows } from "@/components/ui/table-states";
 import TxHashBadge from "./TxHashBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +32,7 @@ function CoverageBar({ pct }: { pct: number }) {
   return (
     <div className="w-full bg-muted rounded-full h-2">
       <div
-        className={`h-2 rounded-full transition-all ${pct >= 100 ? "bg-emerald-500" : "bg-primary"}`}
+        className={`h-2 rounded-full transition-all ${pct >= 100 ? "bg-primary" : "bg-primary/60"}`}
         style={{ width: `${Math.max(pct, 2)}%` }}
       />
     </div>
@@ -95,8 +98,14 @@ export default function DistributionLevel() {
                     National Stock on Record
                   </p>
                   <h3 className="text-5xl font-bold text-foreground tabular-nums">
-                    {isLoading ? "—" : totals.registeredStockKg.toLocaleString()}
-                    <span className="text-2xl font-normal text-muted-foreground"> kg</span>
+                    {isLoading ? (
+                      <Skeleton className="h-12 w-48" />
+                    ) : (
+                      <>
+                        {totals.registeredStockKg.toLocaleString()}
+                        <span className="text-2xl font-normal text-muted-foreground"> kg</span>
+                      </>
+                    )}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-2">
                     {isLoading
@@ -118,7 +127,7 @@ export default function DistributionLevel() {
                       Transferred to Officers
                     </p>
                     <h3 className="text-2xl font-bold text-foreground tabular-nums">
-                      {isLoading ? "—" : formatKg(totals.transferredKg)}
+                      {isLoading ? <Skeleton className="h-7 w-28" /> : formatKg(totals.transferredKg)}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-2">
                       {isLoading
@@ -139,7 +148,7 @@ export default function DistributionLevel() {
                       Outstanding Demand
                     </p>
                     <h3 className="text-2xl font-bold text-foreground tabular-nums">
-                      {isLoading ? "—" : formatKg(totals.outstandingKg)}
+                      {isLoading ? <Skeleton className="h-7 w-28" /> : formatKg(totals.outstandingKg)}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-2">
                       {isLoading
@@ -173,7 +182,11 @@ export default function DistributionLevel() {
             <section className="space-y-4">
               <h3 className="text-xl font-semibold text-foreground">Stock &amp; Demand by Type</h3>
               {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading fertilizer types...</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Skeleton className="h-52 rounded-xl" />
+                  <Skeleton className="h-52 rounded-xl" />
+                  <Skeleton className="h-52 rounded-xl" />
+                </div>
               ) : byType.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No batches minted and no demand approved yet.
@@ -226,7 +239,11 @@ export default function DistributionLevel() {
             <section className="space-y-4">
               <h3 className="text-xl font-semibold text-foreground">Delivery Coverage by District</h3>
               {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading districts...</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Skeleton className="h-44 rounded-xl" />
+                  <Skeleton className="h-44 rounded-xl" />
+                  <Skeleton className="h-44 rounded-xl" />
+                </div>
               ) : byDistrict.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No approved requests yet, so no district has demand.
@@ -291,17 +308,14 @@ export default function DistributionLevel() {
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                            Loading area demand...
-                          </TableCell>
-                        </TableRow>
+                        <TableSkeletonRows columns={7} />
                       ) : areaRows.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                            No approved requests yet — nothing to distribute.
-                          </TableCell>
-                        </TableRow>
+                        <TableEmptyState
+                          columns={7}
+                          icon={MapPin}
+                          title="Nothing to distribute yet"
+                          description="Areas appear here once an officer approves a farmer's request."
+                        />
                       ) : (
                         areaRows.map((row) => (
                           <TableRow
@@ -316,15 +330,15 @@ export default function DistributionLevel() {
                             </TableCell>
                             <TableCell className="py-4 px-6">{row.fertilizerType}</TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums">
-                              {row.approvedKg.toLocaleString()}kg
+                              {formatKg(row.approvedKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums text-muted-foreground">
-                              {row.transferredKg.toLocaleString()}kg
+                              {formatKg(row.transferredKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-right">
                               <div className="flex flex-col items-end gap-1.5">
                                 <span className="tabular-nums font-semibold text-foreground">
-                                  {row.outstandingKg.toLocaleString()}kg
+                                  {formatKg(row.outstandingKg)}
                                 </span>
                                 <div className="w-24">
                                   <CoverageBar pct={coveragePct(row.transferredKg, row.approvedKg)} />
@@ -372,17 +386,14 @@ export default function DistributionLevel() {
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                            Loading transfer ledger...
-                          </TableCell>
-                        </TableRow>
+                        <TableSkeletonRows columns={6} rows={3} />
                       ) : recentTransfers.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                            No stock has been transferred to officers yet.
-                          </TableCell>
-                        </TableRow>
+                        <TableEmptyState
+                          columns={6}
+                          icon={Truck}
+                          title="No transfers yet"
+                          description="Stock sent from the central store to an area officer is logged here."
+                        />
                       ) : (
                         recentTransfers.map((transfer) => (
                           <TableRow
@@ -400,7 +411,7 @@ export default function DistributionLevel() {
                             </TableCell>
                             <TableCell className="py-4 px-6">{transfer.fertilizerType ?? "—"}</TableCell>
                             <TableCell className="py-4 px-6 text-right tabular-nums font-medium text-foreground">
-                              {transfer.amountKg.toLocaleString()}kg
+                              {formatKg(transfer.amountKg)}
                             </TableCell>
                             <TableCell className="py-4 px-6 text-center">
                               <TxHashBadge transactionHash={transfer.transactionHash} groupHover />

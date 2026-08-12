@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { isAxiosError } from "axios";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
+import { describeApiError } from "@/utils/apiError";
+import { formatDate, formatKg } from "@/utils/formatters";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -15,56 +18,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, Clock, Flag, Plus } from "lucide-react";
+import { AlertTriangle, Clock, FileText, Flag, PackageOpen, Plus } from "lucide-react";
 import { toast } from "sonner";
 import RequestStatusBadge from "@/components/RequestStatusBadge";
 import TxHashBadge from "@/components/goverment/TxHashBadge";
-import { useFarmerCollections } from "@/hooks/use-farmer-collections";
-import type { FertilizerRequest } from "@/lib/fertilizerRequests";
-
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
-const formatDate = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—";
+import { useFarmerDistributions } from "@/hooks/use-distributions";
+import { useMyFertilizerRequests } from "@/hooks/use-fertilizer-requests";
 
 export default function ApplicationsHistory() {
-  const [requests, setRequests] = useState<FertilizerRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    data: requests,
+    isLoading,
+    error: loadError,
+    refetch: loadRequests,
+  } = useMyFertilizerRequests();
 
   const {
-    collections,
+    data: collections,
     isLoading: isCollectionsLoading,
-    loadError: collectionsError,
+    error: collectionsError,
     refetch: refetchCollections,
-  } = useFarmerCollections();
+  } = useFarmerDistributions();
 
   const [disputingId, setDisputingId] = useState<number | null>(null);
-
-  const loadRequests = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-
-    try {
-      const response = await axiosInstance.get<FertilizerRequest[]>(
-        apiPaths.fertilizerRequests.mine
-      );
-      setRequests(response.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load your applications."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
 
   const pendingCount = useMemo(
     () => requests.filter((request) => request.status === "PENDING").length,
@@ -91,7 +67,7 @@ export default function ApplicationsHistory() {
     } catch (error) {
       toast.dismiss(toastId);
       toast.error("Could not raise the dispute.", {
-        description: describeError(error, "Please check server connection."),
+        description: describeApiError(error, "Please check server connection."),
       });
     } finally {
       setDisputingId(null);
@@ -111,10 +87,10 @@ export default function ApplicationsHistory() {
           </div>
           <div className="flex items-center gap-3">
             {pendingCount > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-400 text-sm font-medium rounded-full w-fit">
+              <Badge variant="warning" className="px-4 py-2 text-sm">
                 <Clock className="w-4 h-4" />
                 {pendingCount} awaiting review
-              </div>
+              </Badge>
             )}
             <Link
               href="/application-form"
@@ -149,26 +125,25 @@ export default function ApplicationsHistory() {
               </TableHeader>
               <TableBody>
                 {loadError ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
-                      <p className="text-destructive mb-3">{loadError}</p>
-                      <Button variant="outline" size="sm" onClick={loadRequests}>
-                        Retry
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <TableErrorState columns={8} message={loadError} onRetry={loadRequests} />
                 ) : isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                      Loading your applications...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={8} />
                 ) : requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                      No applications yet — submit one from the application form.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={8}
+                    icon={FileText}
+                    title="No applications yet"
+                    description="Submit a subsidy application and your agrarian officer will review it."
+                    action={
+                      <Link
+                        href="/application-form"
+                        className={cn(buttonVariants({ variant: "default" }), "h-10 px-4 gap-2")}
+                      >
+                        <Plus className="w-4 h-4" />
+                        New application
+                      </Link>
+                    }
+                  />
                 ) : (
                   requests.map((request) => (
                     <TableRow
@@ -234,27 +209,20 @@ export default function ApplicationsHistory() {
               </TableHeader>
               <TableBody>
                 {collectionsError ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      <p className="text-destructive mb-3">{collectionsError}</p>
-                      <Button variant="outline" size="sm" onClick={refetchCollections}>
-                        Retry
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <TableErrorState
+                    columns={7}
+                    message={collectionsError}
+                    onRetry={refetchCollections}
+                  />
                 ) : isCollectionsLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Loading your collections...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={7} />
                 ) : collections.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Nothing collected yet — your officer records a handover when you pick your
-                      fertilizer up.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={7}
+                    icon={PackageOpen}
+                    title="Nothing collected yet"
+                    description="Your agrarian officer records a handover when you pick your fertilizer up, and it appears here with the sack serials you received."
+                  />
                 ) : (
                   collections.map((collection) => (
                     <TableRow
@@ -268,7 +236,7 @@ export default function ApplicationsHistory() {
                       </TableCell>
                       <TableCell className="py-4 px-6">{collection.fertilizerType ?? "—"}</TableCell>
                       <TableCell className="py-4 px-6 font-medium text-foreground">
-                        {collection.amountDispensedKg}kg
+                        {formatKg(collection.amountDispensedKg)}
                       </TableCell>
                       <TableCell className="py-4 px-6">
                         <div className="flex flex-wrap gap-1">
@@ -294,10 +262,10 @@ export default function ApplicationsHistory() {
                       </TableCell>
                       <TableCell className="py-4 px-6 text-right">
                         {collection.disputed ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-900 dark:bg-red-500/20 dark:text-red-400">
-                            <AlertTriangle className="w-3.5 h-3.5" />
+                          <Badge variant="destructive">
+                            <AlertTriangle />
                             Disputed
-                          </span>
+                          </Badge>
                         ) : (
                           <Button
                             variant="outline"

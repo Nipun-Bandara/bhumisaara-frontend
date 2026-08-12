@@ -1,15 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { isAxiosError } from "axios";
-import axiosInstance from "@/utils/axiosInstance";
-import apiPaths from "@/utils/apiPaths";
-import {
-  coveragePct,
-  type AdminTransfer,
-  type AreaDemand,
-  type Batch,
-} from "@/lib/distribution";
+import { useCallback, useMemo } from "react";
+import { useAreaDemand } from "@/hooks/use-area-demand";
+import { useBatches } from "@/hooks/use-batches";
+import { useTransfers } from "@/hooks/use-transfers";
+import { coveragePct } from "@/lib/distribution";
 
 export interface TypeBreakdown {
   fertilizerType: string;
@@ -55,53 +50,30 @@ export interface DistributionTotals {
   blockedRows: number;
 }
 
-const describeError = (error: unknown, fallback: string) => {
-  if (isAxiosError(error)) {
-    return error.response?.data?.message || error.message || fallback;
-  }
-  return error instanceof Error ? error.message : fallback;
-};
-
 /**
- * The national distribution picture, assembled from the three admin endpoints
+ * The national distribution picture, assembled from the three admin resources
  * that already exist: minted batches, the area demand queue, and the transfer
  * ledger. Every figure below is derived from one of them — nothing on this
  * screen is estimated.
  */
 export function useDistributionLevels() {
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [demand, setDemand] = useState<AreaDemand[]>([]);
-  const [transfers, setTransfers] = useState<AdminTransfer[]>([]);
+  const batchesQuery = useBatches();
+  const demandQuery = useAreaDemand();
+  const transfersQuery = useTransfers();
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const batches = batchesQuery.data;
+  const demand = demandQuery.data;
+  const transfers = transfersQuery.data;
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
+  const isLoading = batchesQuery.isLoading || demandQuery.isLoading || transfersQuery.isLoading;
 
-    try {
-      // All three are government-admin scoped, so a 403 on any one of them
-      // means the caller can't run this screen at all — fail the whole load.
-      const [batchesResponse, demandResponse, transfersResponse] = await Promise.all([
-        axiosInstance.get<Batch[]>(apiPaths.batches.save),
-        axiosInstance.get<AreaDemand[]>(apiPaths.transfers.demand),
-        axiosInstance.get<AdminTransfer[]>(apiPaths.transfers.history),
-      ]);
+  // All three are government-admin scoped, so a 403 on any one of them means
+  // the caller can't run this screen at all — surface the first failure.
+  const loadError = batchesQuery.error ?? demandQuery.error ?? transfersQuery.error;
 
-      setBatches(batchesResponse.data || []);
-      setDemand(demandResponse.data || []);
-      setTransfers(transfersResponse.data || []);
-    } catch (error) {
-      setLoadError(describeError(error, "Could not load distribution data."));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const refetch = useCallback(async () => {
+    await Promise.all([batchesQuery.refetch(), demandQuery.refetch(), transfersQuery.refetch()]);
+  }, [batchesQuery, demandQuery, transfersQuery]);
 
   const totals = useMemo<DistributionTotals>(() => {
     const registeredStockKg = batches.reduce((sum, batch) => sum + Number(batch.volumeKg || 0), 0);
@@ -215,7 +187,7 @@ export function useDistributionLevels() {
   return {
     isLoading,
     loadError,
-    refetch: loadData,
+    refetch,
     batches,
     demand,
     transfers,

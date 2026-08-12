@@ -15,10 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download } from "lucide-react";
+import { Coins, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { TableEmptyState, TableSkeletonRows } from "@/components/ui/table-states";
 import TxHashBadge from "./TxHashBadge";
 import { useMintedBatches } from "@/hooks/use-minted-batches";
+import { formatKg } from "@/utils/formatters";
 
 type ImportRecord = {
   id: string;
@@ -37,13 +40,7 @@ const columns: ColumnDef<ImportRecord>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: () => {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-900 dark:bg-emerald-500/20 dark:text-emerald-400">
-          Minted on Chain
-        </span>
-      );
-    },
+    cell: () => <Badge variant="success">Minted on Chain</Badge>,
   },
   {
     accessorKey: "transactionHash",
@@ -61,7 +58,7 @@ export default function ImportHistory() {
         id: `TK-${record.tokenId.toString()}`,
         name: record.name,
         description: record.description,
-        volume: record.supply.toString(),
+        volume: formatKg(Number(record.supply)),
         status: "Minted",
         transactionHash: record.transactionHash,
       })),
@@ -105,11 +102,7 @@ export default function ImportHistory() {
               </TableHeader>
               <TableBody>
                 {isNFTsLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                      Loading blockchain history...
-                    </TableCell>
-                  </TableRow>
+                  <TableSkeletonRows columns={columns.length} />
                 ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow key={row.id} className="border-border hover:bg-muted/30 transition-colors">
@@ -121,11 +114,12 @@ export default function ImportHistory() {
                     </TableRow>
                   ))
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                      No imports found.
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    columns={columns.length}
+                    icon={Coins}
+                    title="No imports recorded yet"
+                    description="Every batch minted from the dashboard appears in this national ledger."
+                  />
                 )}
               </TableBody>
             </Table>
