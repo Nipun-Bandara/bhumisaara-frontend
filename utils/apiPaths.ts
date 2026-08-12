@@ -47,6 +47,7 @@ const apiPaths = {
     assign: "/officers/assign",
   },
   users: {
+    myProfile: "/users/me/profile",
     myWallet: "/users/me/wallet",
   },
   farmers: {

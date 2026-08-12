@@ -18,6 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useApiResource } from "@/hooks/use-api-resource";
 import { useFarmerDistributions } from "@/hooks/use-distributions";
 import { useMyFertilizerRequests } from "@/hooks/use-fertilizer-requests";
+import { useMyProfile } from "@/hooks/use-my-profile";
 import TxHashBadge from "@/components/goverment/TxHashBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +36,7 @@ interface WalletResponse {
 
 export default function FarmerDashboard() {
   const { user } = useAuth();
+  const { data: profile } = useMyProfile();
   const { data: collections, isLoading: isCollectionsLoading } = useFarmerDistributions();
   const { data: requests, isLoading: isRequestsLoading } = useMyFertilizerRequests();
   const { data: area, isLoading: isAreaLoading } = useApiResource<FarmerArea>(
@@ -96,8 +98,13 @@ export default function FarmerDashboard() {
                   <User className="w-8 h-8" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground">{user?.username ?? "Farmer"}</h2>
-                  <p className="text-sm text-muted-foreground">Verified Farmer</p>
+                  {/* Falls back to the login name until a profile is saved. */}
+                  <h2 className="text-xl font-semibold text-foreground">
+                    {profile?.fullName || user?.username || "Farmer"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {profile?.contactNumber || "Verified Farmer"}
+                  </p>
                 </div>
               </div>
               <div className="mb-6 space-y-2">

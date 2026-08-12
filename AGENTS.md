@@ -69,6 +69,7 @@ bhumisaara-frontend/
 │   ├── organic-producer/       # Organic Producer Views
 │   ├── private-dealer/         # Agro-Dealer Inventory Views
 │   ├── ui/                     # Shared Reusable Primitives (Button, Badge, Table, table-states, etc.)
+│   ├── ProfileDetailsForm.tsx  # The one profile form, shared by every role
 │   ├── RequestStatusBadge.tsx  # The one fertilizer-request status pill
 │   └── WalletAssets.tsx        # On-chain batch tokens held by the connected wallet
 ├── context/                    # React Contexts (AuthContext.tsx)
@@ -84,6 +85,7 @@ bhumisaara-frontend/
 │   ├── use-pending-collections.ts # Farmers awaiting collection in the officer's area
 │   ├── use-transfers.ts        # Admin → officer transfer ledger
 │   ├── use-minted-batches.ts   # On-chain NFTs joined with backend batch metadata
+│   ├── use-my-profile.ts       # The signed-in user's own account + profile details
 │   └── use-mobile.ts           # Mobile Breakpoint Detection
 ├── lib/                        # Core Utilities & Thirdweb Setup
 │   ├── contract.ts             # Thirdweb Contract Instance (ERC-1155)
@@ -93,7 +95,7 @@ bhumisaara-frontend/
 │   └── utils.ts                # Tailwind Class Merger Utility (`cn`)
 ├── utils/                      # Extended Utilities
 │   ├── apiError.ts             # describeApiError — backend message first
-│   ├── apiPaths.ts             # Centralized API Endpoint Map (all under /v1)
+│   ├── apiPaths.ts             # Centralized API Endpoint Map (version lives in the base URL)
 │   ├── formatters.ts           # kg / tonnes / date / address / hash formatting
 │   └── axiosInstance.ts        # Configured Axios Instance with Auth Interceptors
 └── AGENTS.md                   # Repository Rules & Conventions for AI Agents
@@ -220,7 +222,8 @@ Read this before grepping the repo for the same answers — it saves a round-tri
   - `components/ui/` primitives use **lowercase** filenames (`button.tsx`, `sidebar.tsx`, `sonner.tsx` — shadcn convention). The old PascalCase versions (`Button.tsx`, `Sidebar.tsx`, `Sonner.tsx`) were deleted; don't reintroduce that casing.
   - On-chain NFT data + backend batch metadata are joined once in `@/hooks/use-minted-batches.ts` (its `records` return value). Reuse it instead of re-joining `getNFTs()` output with backend data inside a component.
   - Batch / sack / area-demand / transfer / handover DTO shapes live in `@/lib/distribution.ts` — import the types, don't redeclare them per component.
-  - The farmer's received handovers are fetched once in `@/hooks/use-farmer-collections.ts` (farmer dashboard + application history both read it).
+  - The signed-in user's own account is `@/hooks/use-my-profile.ts`, and the profile form itself is `@/components/ProfileDetailsForm.tsx` — every role's profile screen renders that one component with different labels. Don't fork it per role; the three fields (full name, address, contact number) are the same everywhere. The farmer's Service Area section stays separate because it writes to its own endpoint.
+  - **No file uploads exist.** Nothing on the backend stores a photo or document, so the profile screens deliberately show no upload control — an input that silently discards a file is worse than none.
   - The fertilizer-request status pill is `@/components/RequestStatusBadge.tsx`. It was duplicated verbatim in the farmer and officer history screens; adding a `RequestStatus` meant editing both. Don't fork it again.
   - The national distribution figures (totals, per-type, per-district, per-area, recent transfers) are fetched and aggregated once in `@/hooks/use-distribution-levels.ts`. `DistributionLevel.tsx` is purely presentational on top of it. Every number it renders comes from `GET /api/batches`, `GET /api/v1/transfers/demand` or `GET /api/v1/transfers` — if a metric has no endpoint behind it (farmer collections, dealer stock, warehouse capacity), it is **not** on the screen rather than mocked.
   - `fertilizer_batches.volume_kg` is mint volume **less farmer collections** — transfers to officers deliberately don't consume it. Label it "stock on record", never "total imports".
