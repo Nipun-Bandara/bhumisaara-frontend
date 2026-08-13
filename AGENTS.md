@@ -57,6 +57,15 @@ bhumisaara-frontend/
 │   │   ├── own-distribution/   # Agrarian Officer Local Distribution
 │   │   ├── request-approvals/  # Officer: review farmer fertilizer requests
 │   │   ├── sack-labels/        # Government: printable QR label sheet for a batch's sacks
+│   │   ├── marketplace/        # Farmer: browse listings, spend subsidy credits
+│   │   ├── my-orders/          # Farmer: confirm collection (the only step that moves credits)
+│   │   ├── credit-balance/     # Farmer: credit position + issuance history
+│   │   ├── inventory/          # Seller: listings management (both seller roles)
+│   │   ├── incoming-orders/    # Seller: mark goods ready
+│   │   ├── redemption/         # Seller: claim + burn to settle
+│   │   ├── credit-issuance/    # Government: mint a season's subsidy budget
+│   │   ├── redemption-claims/  # Government: claims queue with on-chain verification
+│   │   ├── credit-oversight/   # Government: reconciliation & seller anomaly flags
 │   │   └── profile/            # User Profile Settings
 │   ├── auth/                   # Authentication Pages (Login/Register)
 │   ├── globals.css             # Tailwind v4 Global CSS & Design System
@@ -66,8 +75,13 @@ bhumisaara-frontend/
 │   ├── farmer/                 # Farmer Portal Views
 │   ├── goverment/              # Government Administrator Dashboard & Minting Forms
 │   ├── landing/                # Public Landing Page Components
-│   ├── organic-producer/       # Organic Producer Views
-│   ├── private-dealer/         # Agro-Dealer Inventory Views
+│   ├── organic-producer/       # Organic Producer profile + dashboard wrapper
+│   ├── private-dealer/         # Agro-Dealer profile + dashboard wrapper
+│   ├── seller/                 # SHARED by both seller roles — don't fork per role
+│   │   ├── SellerListings.tsx  # Listings CRUD (isOrganic is server-derived)
+│   │   ├── SellerOrders.tsx    # Incoming orders; "mark ready" is the only action
+│   │   ├── SellerRedemption.tsx # Claim, then burn from the seller's own wallet
+│   │   └── SellerDashboard.tsx # Storefront figures, all from real endpoints
 │   ├── ui/                     # Shared Reusable Primitives (Button, Badge, Table, table-states, etc.)
 │   ├── ProfileDetailsForm.tsx  # The one profile form, shared by every role
 │   ├── RequestStatusBadge.tsx  # The one fertilizer-request status pill
@@ -86,6 +100,11 @@ bhumisaara-frontend/
 │   ├── use-transfers.ts        # Admin → officer transfer ledger
 │   ├── use-minted-batches.ts   # On-chain NFTs joined with backend batch metadata
 │   ├── use-my-profile.ts       # The signed-in user's own account + profile details
+│   ├── use-credits.ts          # Seasons, eligible farmers, issuances, balance, reconciliation
+│   │                           #   + useOnChainCreditBalance (the real balanceOf read)
+│   ├── use-listings.ts         # Marketplace browse (with filters) + the seller's own
+│   ├── use-orders.ts           # Farmer / seller / national order lists
+│   ├── use-redemption-claims.ts # Seller's own, the review queue, the full ledger
 │   └── use-mobile.ts           # Mobile Breakpoint Detection
 ├── lib/                        # Core Utilities & Thirdweb Setup
 │   ├── contract.ts             # Thirdweb Contract Instance (ERC-1155)
@@ -164,6 +183,62 @@ transfer step. Do not add one.
 3. Every scan goes to `POST /api/v1/distributions/validate-sack`; the backend's message is the toast body, because only the server knows if a sack was already spent. Scanning is serialised while a validation is in flight, or two scans would send the same `alreadyScannedKg`.
 4. Confirm the farmer's wallet against `farmerWallet`, then `burn({ contract, account: account.address, id, value })` → `waitForReceipt` → `POST /api/v1/distributions`, with the payload snapshotted into a `useRef` before signing and the hash surfaced (`duration: Infinity`) if the backend write fails.
 
+### Subsidy credits vs stock tokens — read before touching token code
+The ERC-1155 contract carries **two kinds of token** and they must never be
+confused. Shapes for each live in a separate file on purpose:
+
+| | STOCK | SUBSIDY CREDIT |
+|---|---|---|
+| Types in | `@/lib/distribution.ts` | `@/lib/marketplace.ts` |
+| Backed by | fertilizer in a warehouse | the treasury |
+| 1 token buys | — (it *is* 1 kg of stock) | 1 kg chemical, **or 1.5 kg organic** |
+| Minted by | `MintBatchForm` (government) | `CreditIssuance` (government) |
+| Burned by | `HandoverForm` (officer, at collection) | `SellerRedemption` (seller, at settlement) |
+
+Label them distinctly in every UI. A batch renders as `TK-{id}`; a credit always
+carries the word "Credit" (`Credit · TK-{id}`).
+
+**The organic 1.5× rate.** `creditsRequired` / `kgCoveredByCredits` in
+`@/lib/marketplace.ts` mirror the backend's `CreditMath` exactly, using the same
+integer arithmetic. They exist **only** to render a live preview while the
+farmer types — the server re-derives every figure on `POST /orders`, and
+`GET /orders/quote` returns the binding costing. Never treat the client total as
+authoritative.
+
+**Credit token ids are per-season.** A season's first issuance creates the token
+with `mintTo` (season baked into the NFT metadata); every later issuance uses
+`mintAdditionalSupplyTo` against that same id, which is what keeps a season's
+credits fungible between farmers. `CreditIssuance.tsx` picks between the two by
+looking the season up in `useCreditIssuances()`.
+
+**On-chain balances are read client-side.** The backend has no web3 client, so
+`GET /api/v1/credits/balance` returns the *Postgres ledger* position plus the
+season token ids. `useOnChainCreditBalance` (in `@/hooks/use-credits.ts`) reads
+the real `balanceOf`. Screens show **both** and say so when they diverge — a gap
+means credits moved off-platform, which is information, not a bug to hide.
+
+### Marketplace order flow (the anti-fraud path)
+`Marketplace.tsx` → `MyOrders.tsx` (farmer) and `SellerOrders.tsx` (seller).
+1. The farmer places an order. **No chain interaction** — it only reserves stock.
+2. The seller marks goods ready (`PATCH /orders/{id}/ready`). This is the **only**
+   action a seller has; there is no "complete" button because the API has no such
+   endpoint for them. `SellerOrders.tsx` says so on screen rather than leaving a
+   seller hunting for it.
+3. At handover the **farmer** confirms from `MyOrders.tsx`: `safeTransferFrom`
+   from their own wallet to the seller's → `waitForReceipt` →
+   `POST /orders/{id}/confirm` with the hash. Payload snapshotted into a `useRef`
+   before signing, and the hash surfaced with `duration: Infinity` if the backend
+   write fails — same contract as every other chain flow here.
+4. A cash-only order (`creditsUsed === 0`) skips the chain entirely and confirms
+   with a null hash.
+
+### Seller redemption is two steps, deliberately
+The government **approves** a claim; the **seller** burns. An ERC-1155 balance is
+destroyable only by its holder, and the credits sit in the seller's wallet — an
+admin genuinely cannot burn them. `SellerRedemption.tsx` reads `balanceOf` across
+the claim's `creditTokenIds` to find a token with enough balance before burning,
+because a seller may hold credits from several seasons.
+
 ### QR scanning
 `components/goverment/QrScanner.tsx` exports `QrScanner` (camera) and `ScanField` (camera + manual text fallback side by side). Reuse `ScanField` rather than wiring `html5-qrcode` again:
 - the library is `import()`-ed inside the effect — importing it at module scope breaks the server render;
@@ -228,10 +303,12 @@ Read this before grepping the repo for the same answers — it saves a round-tri
   - The national distribution figures (totals, per-type, per-district, per-area, recent transfers) are fetched and aggregated once in `@/hooks/use-distribution-levels.ts`. `DistributionLevel.tsx` is purely presentational on top of it. Every number it renders comes from `GET /api/batches`, `GET /api/v1/transfers/demand` or `GET /api/v1/transfers` — if a metric has no endpoint behind it (farmer collections, dealer stock, warehouse capacity), it is **not** on the screen rather than mocked.
   - `fertilizer_batches.volume_kg` is mint volume **less farmer collections** — transfers to officers deliberately don't consume it. Label it "stock on record", never "total imports".
 - **No automated test suite exists** in this repo (no Jest/Vitest config, no `*.test.*`/`*.spec.*` files). Don't spend time hunting for one.
+  - Subsidy credit / marketplace DTO shapes live in `@/lib/marketplace.ts`, the companion to `@/lib/distribution.ts`. Import the types; don't redeclare them per component. The two files are separate **because the two token types are separate** — see §4.
+  - **Both seller roles share one set of components**, in `components/seller/`: `SellerListings`, `SellerOrders`, `SellerRedemption`, `SellerDashboard`. `components/private-dealer/DealerDashboard.tsx` and `components/organic-producer/OrganicProducerDashboard.tsx` are now thin wrappers so the `/dashboard` switchboard keeps resolving per role. Don't fork these per role: the only difference between a dealer and a producer is `isOrganic`, which the **server** sets from the caller's role, and two copies would be two chances to let a dealer sell "organic" at 1.5kg per credit.
 - **Known pre-existing issues, unrelated to typical feature work — don't fix opportunistically, only if the user asks:**
   - `components/DotGrid.tsx` has 43 implicit-`any`/untyped-ref TS errors. It **is** used — it draws the auth page background — so don't delete it.
-  - `components/private-dealer/DealerInventory.tsx` has a Base UI `Select` `onValueChange` typing mismatch.
-  - These two are the only reason `next.config.ts` still sets `typescript.ignoreBuildErrors`; `npx tsc --noEmit` is clean once they're excluded. Fix both and the flag can go.
+  - `components/DotGrid.tsx` is now the **only** reason `next.config.ts` still sets `typescript.ignoreBuildErrors`; `npx tsc --noEmit` is clean once it's excluded. Fix it and the flag can go.
+  - `components/private-dealer/DealerInventory.tsx` (the other former offender) **was deleted**: it was a static mock-up of stock the backend never stored, and `/inventory` now renders the real `components/seller/SellerListings.tsx`. `components/chart-area.tsx` is unreferenced since the dealer dashboard was rewritten, but was left in place as a generic primitive.
 - **Required env vars** (see `.env.development`): `NEXT_PUBLIC_API_URL` (Spring Boot backend base URL), `NEXT_PUBLIC_CONTRACT_ADDRESS` (ERC-1155 contract), `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`.
 - **Dev/preview server**: `.claude/launch.json` runs `npm run dev` on port 3000 for browser-based preview tools.
 - **Don't read/grep in full**: `node_modules/`, `.next/`, `package-lock.json`. If you need one specific package's behavior, target that package's file directly rather than searching the whole tree.

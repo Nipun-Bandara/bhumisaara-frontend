@@ -53,10 +53,47 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["AGRARIAN_SERVICE_OFFICER"],
   },
   {
+    // The farmer's marketplace: buy from dealers and producers with credits.
+    id: "marketplace",
+    label: "Marketplace",
+    href: "/marketplace",
+    roles: ["FARMER"],
+  },
+  {
+    id: "myOrders",
+    label: "My Orders",
+    href: "/my-orders",
+    roles: ["FARMER"],
+  },
+  {
+    id: "creditBalance",
+    label: "Subsidy Credits",
+    href: "/credit-balance",
+    roles: ["FARMER"],
+  },
+  {
     id: "distributionLevel",
     label: "Distribution Level",
     href: "/distribution-level",
     roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "creditIssuance",
+    label: "Issue Credits",
+    href: "/credit-issuance",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
+    id: "redemptionClaims",
+    label: "Redemption Claims",
+    href: "/redemption-claims",
+    roles: ["GOVERNMENT_ADMIN", "SYSTEM_ADMIN"],
+  },
+  {
+    id: "creditOversight",
+    label: "Credit Oversight",
+    href: "/credit-oversight",
+    roles: ["GOVERNMENT_ADMIN", "SYSTEM_ADMIN"],
   },
   {
     id: "importHistory",
@@ -83,10 +120,24 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["GOVERNMENT_ADMIN", "SYSTEM_ADMIN"],
   },
   {
+    // Both seller roles share these three screens — the only difference between
+    // a dealer and a producer is the organic flag, which the server sets.
     id: "inventory",
-    label: "Inventory",
+    label: "My Listings",
     href: "/inventory",
-    roles: ["PRIVATE_AGRO_DEALER"],
+    roles: ["PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
+  },
+  {
+    id: "incomingOrders",
+    label: "Incoming Orders",
+    href: "/incoming-orders",
+    roles: ["PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
+  },
+  {
+    id: "redemption",
+    label: "Redemption",
+    href: "/redemption",
+    roles: ["PRIVATE_AGRO_DEALER", "ORGANIC_FERTILIZER_PRODUCER"],
   },
   {
     id: "profile",
@@ -106,7 +157,7 @@ export function getNavItemsForRole(userRole: Role | string | null | undefined): 
 
 export default NAV_ITEMS;
 
-import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History, Package, UserCheck, ClipboardCheck, QrCode, Truck, Flame } from "lucide-react";
+import { Home, User, Settings, DollarSign, Users, Layers, LogOut, FileText, History, Package, UserCheck, ClipboardCheck, QrCode, Truck, Flame, Store, ShoppingCart, Coins, ReceiptText, ShieldCheck, PackageCheck, Banknote } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -122,5 +173,14 @@ export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> =
   sackLabels: QrCode,
   ownDistribution: History,
   inventory: Package,
+  // Marketplace & subsidy credits
+  marketplace: Store,
+  myOrders: ShoppingCart,
+  creditBalance: Coins,
+  creditIssuance: Coins,
+  redemptionClaims: ReceiptText,
+  creditOversight: ShieldCheck,
+  incomingOrders: PackageCheck,
+  redemption: Banknote,
   profile: User,
 };
