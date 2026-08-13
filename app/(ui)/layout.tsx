@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
+import { darkTheme, lightTheme } from "thirdweb/react";
 import { inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/thirdwebClient";
 import { contract } from "@/lib/contract";
@@ -34,6 +35,21 @@ const wallet = inAppWallet({
 // Naming our ERC-1155 narrows that query to the fertilizer batches instead of
 // every collection the indexer knows about for this address.
 const supportedNFTs = { [amoy.id]: [contract.address] };
+
+// thirdweb's stock primary button is deliberately the inverse of the page —
+// near-black on light, white on dark — so the disconnected "Connect" button
+// read as a foreign control next to our own buttons. Pointing it at the same
+// design tokens the rest of the app uses keeps it in step with both themes,
+// and with any future palette change, without restyling per theme here.
+// Built once at module scope: a fresh theme object each render would churn
+// thirdweb's emotion styles, same reason `wallet` lives out here.
+const connectButtonColors = {
+    primaryButtonBg: "var(--primary)",
+    primaryButtonText: "var(--primary-foreground)",
+};
+
+const connectLightTheme = lightTheme({ colors: connectButtonColors });
+const connectDarkTheme = darkTheme({ colors: connectButtonColors });
 
 export default function DashboardLayout({
     children,
@@ -85,7 +101,11 @@ export default function DashboardLayout({
                                             chain={amoy}
                                             chains={[amoy]}
                                             supportedNFTs={supportedNFTs}
-                                            theme={resolvedTheme === "light" ? "light" : "dark"}
+                                            theme={
+                                                resolvedTheme === "light"
+                                                    ? connectLightTheme
+                                                    : connectDarkTheme
+                                            }
                                         />
                                     ) : (
                                         <div className="w-[140px] h-[40px] bg-muted animate-pulse rounded-xl" />

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { User, Leaf, ArrowRight, BadgeCheck, AlertTriangle, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -19,6 +20,7 @@ import { useApiResource } from "@/hooks/use-api-resource";
 import { useFarmerDistributions } from "@/hooks/use-distributions";
 import { useMyFertilizerRequests } from "@/hooks/use-fertilizer-requests";
 import { useMyProfile } from "@/hooks/use-my-profile";
+import { cn } from "@/lib/utils";
 import TxHashBadge from "@/components/goverment/TxHashBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,7 +54,6 @@ export default function FarmerDashboard() {
   );
 
   const walletAddress = wallet?.walletAddress ?? null;
-  const isProfileLoading = isRequestsLoading || isAreaLoading;
 
   /**
    * What this farmer has actually been granted and taken: every request that
@@ -110,15 +111,23 @@ export default function FarmerDashboard() {
               <div className="mb-6 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Area</span>
-                  <span className="text-sm text-foreground font-bold">
-                    {isProfileLoading ? "—" : area?.areaName ?? "Not assigned"}
-                  </span>
+                  {isAreaLoading ? (
+                    <Skeleton className="h-4 w-28" />
+                  ) : (
+                    <span className="text-sm text-foreground font-bold">
+                      {area?.areaName ?? "Not assigned"}
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">District</span>
-                  <span className="text-sm text-foreground font-bold">
-                    {isProfileLoading ? "—" : area?.district ?? "—"}
-                  </span>
+                  {isAreaLoading ? (
+                    <Skeleton className="h-4 w-20" />
+                  ) : (
+                    <span className="text-sm text-foreground font-bold">
+                      {area?.district ?? "—"}
+                    </span>
+                  )}
                 </div>
               </div>
               {/* Scanned by the officer to prove the stock is going to the right farmer */}
@@ -159,33 +168,50 @@ export default function FarmerDashboard() {
             <div className="bg-card rounded-xl p-6 shadow-sm border border-border transition-all duration-300 hover:-translate-y-1 hover:shadow-md flex flex-col items-center justify-center text-center">
               <h3 className="text-xl font-semibold text-foreground mb-6">Remaining Fertilizer Quota</h3>
               <div className="relative w-full max-w-[300px]">
-                {/* The arc fills as the farmer collects against their approvals */}
+                {/* The arc fills as the farmer collects against their approvals.
+                    While the approvals load, the same ring pulses as its own
+                    skeleton — keeping the geometry avoids a layout jump. */}
                 <svg className="text-primary w-full h-auto" viewBox="0 0 36 36">
-                  <path className="text-muted/20" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
                   <path
-                    className="text-primary"
+                    className={isRequestsLoading ? "text-muted animate-pulse" : "text-muted/20"}
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="3"
-                    strokeDasharray={`${quota.collectedPct}, 100`}
                   />
+                  {!isRequestsLoading && (
+                    <path
+                      className="text-primary"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeDasharray={`${quota.collectedPct}, 100`}
+                    />
+                  )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-bold text-primary tabular-nums">
-                    {isProfileLoading ? "—" : quota.remainingKg}
-                    <span className="text-xl font-semibold">kg</span>
-                  </span>
-                  <span className="text-sm text-muted-foreground mt-1">
-                    {isProfileLoading
-                      ? "Loading your approvals..."
-                      : quota.approvedKg > 0
-                        ? `left of ${quota.approvedKg}kg approved`
-                        : "No approved requests yet"}
-                  </span>
+                  {isRequestsLoading ? (
+                    <>
+                      <Skeleton className="h-10 w-28" />
+                      <Skeleton className="h-4 w-36 mt-2" />
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-bold text-primary tabular-nums">
+                        {quota.remainingKg}
+                        <span className="text-xl font-semibold">kg</span>
+                      </span>
+                      <span className="text-sm text-muted-foreground mt-1">
+                        {quota.approvedKg > 0
+                          ? `left of ${quota.approvedKg}kg approved`
+                          : "No approved requests yet"}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
-              {!isProfileLoading && quota.approvedKg > 0 && (
+              {!isRequestsLoading && quota.approvedKg > 0 && (
                 <p className="text-sm text-muted-foreground mt-4">
                   {quota.collectedKg}kg already collected from your agrarian officer.
                 </p>
@@ -203,10 +229,16 @@ export default function FarmerDashboard() {
                   Swap your traditional subsidy tokens for high-quality organic fertilizer options available in our new green market.
                 </p>
               </div>
-              <Button variant="default" className="flex items-center gap-2 whitespace-nowrap">
+              <Link
+                href="/marketplace"
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "h-10 px-4 gap-2 whitespace-nowrap"
+                )}
+              >
                 Open Green Market Exchange
                 <ArrowRight className="w-4 h-4" />
-              </Button>
+              </Link>
             </div>
             
           </div>

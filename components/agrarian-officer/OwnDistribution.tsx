@@ -2,20 +2,11 @@
 
 import { useMemo } from "react";
 import { useOfficerDistributions } from "@/hooks/use-distributions";
-import { formatDateTime, formatKg } from "@/utils/formatters";
-import TxHashBadge from "@/components/goverment/TxHashBadge";
+import { formatKg } from "@/utils/formatters";
+import HandoverHistoryTable from "@/components/HandoverHistoryTable";
 import { Badge } from "@/components/ui/badge";
-import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Package, RefreshCw } from "lucide-react";
+import { AlertTriangle, Package, RefreshCw } from "lucide-react";
 
 export default function OwnDistribution() {
   const {
@@ -41,7 +32,7 @@ export default function OwnDistribution() {
       <main className="flex-grow px-4 md:px-8 max-w-7xl mx-auto w-full pb-8 space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-primary">Distribution History</h1>
+            <h1 className="text-3xl font-bold text-primary">Handover History</h1>
             <p className="text-lg text-muted-foreground">
               Every fertilizer handover you have processed, newest first.
             </p>
@@ -75,96 +66,14 @@ export default function OwnDistribution() {
           </div>
         )}
 
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow className="border-border">
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6">Date &amp; Time</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6">Farmer</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6">Type</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6 text-right">Amount</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6">Sack Serials</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6 text-center">Burn Tx</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground py-4 px-6">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loadError ? (
-                  <TableErrorState columns={7} message={loadError} onRetry={loadDistributions} />
-                ) : isLoading ? (
-                  <TableSkeletonRows columns={7} />
-                ) : distributions.length === 0 ? (
-                  <TableEmptyState
-                    columns={7}
-                    icon={Package}
-                    title="No handovers recorded yet"
-                    description="Once you dispense fertilizer to a farmer, every handover appears here with its burn transaction."
-                  />
-                ) : (
-                  distributions.map((record) => (
-                    <TableRow
-                      key={record.distributionId}
-                      className={`border-border transition-colors group ${
-                        record.disputed ? "bg-destructive/5 hover:bg-destructive/10" : "hover:bg-muted/30"
-                      }`}
-                    >
-                      <TableCell className="py-4 px-6 text-muted-foreground">
-                        {formatDateTime(record.createdAt)}
-                      </TableCell>
-                      <TableCell className="py-4 px-6 font-medium text-foreground">
-                        {record.farmerName ?? `Farmer #${record.farmerId}`}
-                      </TableCell>
-                      <TableCell className="py-4 px-6">{record.fertilizerType ?? "—"}</TableCell>
-                      <TableCell className="py-4 px-6 text-right tabular-nums font-medium text-foreground">
-                        {formatKg(record.amountDispensedKg)}
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="flex flex-wrap gap-1">
-                          {record.sackSerials.length === 0 ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            record.sackSerials.map((serial) => (
-                              <span
-                                key={serial}
-                                className="font-mono text-xs bg-muted px-2 py-0.5 rounded"
-                              >
-                                {serial}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4 px-6 text-center">
-                        <TxHashBadge transactionHash={record.burnTransactionHash} groupHover />
-                      </TableCell>
-                      <TableCell className="py-4 px-6">
-                        {record.disputed ? (
-                          <Badge
-                            variant="destructive"
-                            title={
-                              record.disputedAt
-                                ? `Disputed on ${formatDateTime(record.disputedAt)}`
-                                : undefined
-                            }
-                          >
-                            <AlertTriangle />
-                            Disputed by farmer
-                          </Badge>
-                        ) : (
-                          <Badge variant="success">
-                            <CheckCircle />
-                            Completed
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+        <HandoverHistoryTable
+          records={distributions}
+          isLoading={isLoading}
+          error={loadError}
+          onRetry={loadDistributions}
+          emptyTitle="No handovers recorded yet"
+          emptyDescription="Once you dispense fertilizer to a farmer, every handover appears here with its burn transaction."
+        />
       </main>
     </div>
   );

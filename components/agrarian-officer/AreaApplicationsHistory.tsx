@@ -85,7 +85,7 @@ export default function AreaApplicationsHistory() {
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-w-0">
           <div className="px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xl font-semibold text-foreground">Area Applications</h2>
             <div className="flex items-center gap-3">

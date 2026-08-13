@@ -4,26 +4,12 @@ import * as React from "react"
 import {
   BadgeCheck,
   Bell,
-  ChevronRight,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
   SquareTerminal,
-  Leaf,
   User
 } from "lucide-react"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -44,14 +29,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/context/AuthContext"
-import { getNavItemsForRole, ICONS_MAP } from "@/lib/navigation"
+import { getNavGroupsForRole, ICONS_MAP } from "@/lib/navigation"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
@@ -74,63 +55,47 @@ function AppLogo() {
   )
 }
 
-function NavMain({
-  items,
-}: {
-  items: {
-    title: string
-    url: string
-    icon?: React.ElementType
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
-}) {
+interface NavMenuItem {
+  title: string
+  url: string
+  icon?: React.ElementType
+  isActive?: boolean
+}
+
+interface NavMenuGroup {
+  id: string
+  label: string
+  items: NavMenuItem[]
+}
+
+/**
+ * One SidebarGroup per functional section. The headings collapse away on their
+ * own in icon mode (SidebarGroupLabel fades and pulls itself up), so grouping
+ * costs nothing when the sidebar is narrowed.
+ */
+function NavMain({ groups }: { groups: NavMenuGroup[] }) {
   return (
-    <SidebarGroup>
-      <SidebarMenu>
-        {items.map((item) => (
-          item.items && item.items.length > 0 ? (
-            <Collapsible
-              key={item.title}
-              render={<li />}
-              defaultOpen={item.isActive}
-              className="group/collapsible"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger render={
-                  <SidebarMenuButton tooltip={item.title} />
-                }>
-                  {item.icon && <item.icon />}
+    <>
+      {groups.map((group) => (
+        <SidebarGroup key={group.id}>
+          <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+          <SidebarMenu>
+            {group.items.map((item) => (
+              <SidebarMenuItem key={item.url}>
+                <SidebarMenuButton
+                  isActive={item.isActive}
+                  tooltip={item.title}
+                  render={<Link href={item.url} className="flex items-center gap-2" />}
+                >
+                  {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
                   <span>{item.title}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {item.items.map((subItem) => (
-                      <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton render={<Link href={subItem.url} />}>
-                          <span>{subItem.title}</span>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
+                </SidebarMenuButton>
               </SidebarMenuItem>
-            </Collapsible>
-          ) : (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton isActive={item.isActive} tooltip={item.title} render={<Link href={item.url} className="flex items-center gap-2" />}>
-                {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      ))}
+    </>
   )
 }
 
@@ -219,21 +184,20 @@ export function AppSidebar({
   const { user } = useAuth()
   const pathname = usePathname()
 
-  const rawNav = getNavItemsForRole(user?.role)
-
-  // Transform the actual app navigation to match the demo's NavMain structure
-  const navMain = rawNav.map((item) => {
-    const IconComp = ICONS_MAP[item.id] ?? SquareTerminal;
-    const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-    return {
+  const navGroups = getNavGroupsForRole(user?.role).map((group) => ({
+    id: group.id,
+    label: group.label,
+    items: group.items.map((item) => ({
       title: item.label,
       url: item.href,
-      icon: IconComp,
-      isActive: isActive,
-    }
-  })
-
-  // No dummy teams array needed anymore
+      icon: ICONS_MAP[item.id] ?? SquareTerminal,
+      // Matching on a bare `startsWith` lit up every item whose href is a
+      // prefix of another's — /officer-distribution stayed highlighted while
+      // /officer-distribution-history was open. Requiring the trailing slash
+      // keeps a nested route active without bleeding across sibling routes.
+      isActive: pathname === item.href || pathname.startsWith(`${item.href}/`),
+    })),
+  }))
 
   const navUser = user ? {
     name: user.username || "User",
@@ -251,7 +215,7 @@ export function AppSidebar({
         <AppLogo />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain groups={navGroups} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={navUser} />

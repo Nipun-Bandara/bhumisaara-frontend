@@ -98,7 +98,7 @@ export default function MintBatchForm() {
    */
   const handleTransactionConfirmed = async (receipt: any) => {
     setIsSaving(true);
-    const toastId = toast.loading("Saving metadata to backend server...");
+    const toastId = toast.loading("Saving minted data...");
 
     try {
       if (!user?.id) {

@@ -223,6 +223,18 @@ export default function HandoverForm() {
       return;
     }
 
+    // The backend rejects an over-scan too (requireWithinApproval), but that
+    // costs a round trip; once the farmer's remaining approval is already
+    // covered, refuse locally instead of firing a validate-sack call that can
+    // only come back rejected.
+    if (scannedKg >= targetKg) {
+      toast.error("Approved amount already fully covered.", {
+        description: `${selectedCollection.farmerName} has ${formatKg(targetKg)} remaining — scanning ${serial} would exceed it.`,
+        icon: <AlertCircle className="w-5 h-5 text-destructive" />,
+      });
+      return;
+    }
+
     setIsValidating(true);
 
     try {
@@ -586,12 +598,17 @@ export default function HandoverForm() {
                           // Serialised on purpose: two scans in flight at once
                           // would both send the same alreadyScannedKg and could
                           // slip past the quota ceiling.
-                          disabled={isSaving || isTxPending || isValidating}
+                          disabled={isSaving || isTxPending || isValidating || scannedKg >= targetKg}
                           onValue={handleSackScan}
                           onCameraError={(message) =>
                             toast.error("Camera unavailable.", { description: message })
                           }
                         />
+                        {scannedKg >= targetKg && (
+                          <p className="text-xs text-muted-foreground -mt-3">
+                            Approved amount fully covered — remove a sack above to scan a different one.
+                          </p>
+                        )}
 
                         {/* Scanned list */}
                         <div className="border border-border rounded-xl divide-y divide-border">
@@ -646,7 +663,7 @@ export default function HandoverForm() {
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="pt-2 space-y-6">
                 {!selectedCollection ? (
                   <p className="text-sm text-muted-foreground">Select a farmer above to begin.</p>
                 ) : (
@@ -695,7 +712,7 @@ export default function HandoverForm() {
 
             {/* ─── Action ─────────────────────────────────────────────────── */}
             <Card className="border-border shadow-sm">
-              <CardContent className="pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardContent className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
                   {selectedCollection && selectedBatch ? (
                     <span>

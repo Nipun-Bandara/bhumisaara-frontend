@@ -15,7 +15,12 @@ export function Loader({
   size = 40,
   stroke = 5,
   speed = 2,
-  color = "#08ff6bff",
+  // The design token rather than a literal, so the ring tracks the theme
+  // instead of staying the same neon green on both. `Ring` writes this
+  // straight into a CSS custom property it then reads with `stroke:
+  // var(...)`, so a `var()` reference resolves normally — pass
+  // "currentColor" here to inherit the parent's text colour instead.
+  color = "var(--primary)",
   className,
 }: LoaderProps) {
   return (

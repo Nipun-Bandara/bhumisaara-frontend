@@ -30,7 +30,7 @@ export default function AuthContainer() {
     <div className="w-full min-h-screen bg-background flex flex-col lg:flex-row relative text-foreground">
       <Link
         href="/"
-        className="top-4 left-4 z-50"
+        className="absolute top-4 left-4 z-50"
       >
         <Button variant="link"><ArrowLeft className="w-4 h-4" />Back to Home</Button>
       </Link>
