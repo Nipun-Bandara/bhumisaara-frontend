@@ -296,37 +296,46 @@ export default function GovermentDashboard() {
           </div>
         </section>
 
-        {/* What the ministry's own wallet holds right now */}
-        <WalletAssets description="Batch tokens still held by the ministry, straight from the contract." />
+        {/* Main Actions & Ledger Layout (Bento Grid Style)
+            Minting is the one thing an admin comes here to *do*, so it sits
+            directly under the KPI ribbon — the wallet's token grid used to push
+            it below the fold whenever the ministry held more than a few batches.
+            `items-start` keeps each column at its natural height instead of
+            stretching the shorter one to match. */}
+        <section className="grid grid-cols-1 xl:grid-cols-3 gap-8 xl:items-start">
 
-        {/* Main Actions & Ledger Layout (Bento Grid Style) */}
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
           {/* Main Actions Panel */}
           <div className="xl:col-span-1">
             <MintBatchForm />
           </div>
 
-          {/* Global Live Ledger Table */}
-          <div className="xl:col-span-2 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
+          {/* Global Live Ledger Table — capped and scrolled internally so a
+              long ledger can't tower over the mint form beside it. This is a
+              preview; "Full History" is the complete list. */}
+          <div className="xl:col-span-2 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col max-h-[30rem]">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">Global Live Ledger</h3>
+                {!isNFTsLoading && records.length > 0 && (
+                  <Badge variant="secondary">{records.length}</Badge>
+                )}
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="text-primary hover:text-primary/80 hover:bg-primary/10 gap-2"
                 onClick={() => router.push("/import-history")}
               >
                 Full History <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
-            
-            <div className="overflow-x-auto flex-1">
+
+            {/* min-h-0 lets this shrink inside the flex column so the cap
+                actually bites; the Table's own wrapper handles the x axis. */}
+            <div className="overflow-y-auto flex-1 min-h-0">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow className="border-border">
@@ -376,9 +385,13 @@ export default function GovermentDashboard() {
               </Table>
             </div>
           </div>
-          
+
         </section>
-        
+
+        {/* What the ministry's own wallet holds right now — reference rather
+            than an action, so it reads last instead of blocking the mint form. */}
+        <WalletAssets description="Batch tokens still held by the ministry, straight from the contract." />
+
       </main>
 
       <Sheet open={isPreviewOpen} onOpenChange={handlePreviewOpenChange}>

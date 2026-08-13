@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import WalletAssets from "@/components/WalletAssets";
-import { ArrowRight, Flame, PackageOpen, Users } from "lucide-react";
+import { ArrowRight, Flame, MapPin, PackageOpen, Users } from "lucide-react";
 
 interface StockLine {
   fertilizerType: string;
@@ -61,29 +61,36 @@ export default function AgrarianDashboard() {
     [pending]
   );
 
-  const centreName = profile?.areaName
-    ? `${profile.areaName} Agrarian Service Center`
-    : "Agrarian Service Center";
-
   return (
     <div className="flex flex-col min-h-full w-full bg-background">
       <main className="flex-grow px-4 md:px-8 max-w-7xl mx-auto w-full pb-8 space-y-8">
 
         {/* Header Info */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          {/* Both lines are fixed wording now, so nothing here waits on a
+              fetch and the heading never flickers. */}
           <div>
-            {isLoading ? (
-              <Skeleton className="h-9 w-80" />
-            ) : (
-              <h1 className="text-3xl font-bold text-primary">{centreName}</h1>
-            )}
+            <h1 className="text-3xl font-bold text-primary">Agrarian Service Center</h1>
             <p className="text-lg text-muted-foreground">
-              {profile?.district
-                ? `${profile.district} district · manage stock and hand over to verified farmers.`
-                : "Manage inventory and process digital handovers to verified farmers."}
+              Manage stock and hand over to verified farmers.
             </p>
           </div>
-          
+
+          {/* The centre this officer actually serves — the only fetched part of
+              the header, so it is the only thing standing in as a skeleton, and
+              it sits to the right like every other label/value pair in the app.
+              The skeleton matches the badge's own box (h-9, rounded-full) so
+              the row doesn't resize when the profile lands. */}
+          {isLoading ? (
+            <Skeleton className="h-9 w-56 max-w-full rounded-full" />
+          ) : (
+            <Badge variant="secondary" className="w-fit px-4 py-2 text-sm">
+              <MapPin className="w-4 h-4" />
+              {profile?.areaName
+                ? `${profile.areaName}${profile.district ? `, ${profile.district}` : ""}`
+                : "No area assigned"}
+            </Badge>
+          )}
         </div>
 
         {loadError && (
@@ -104,14 +111,18 @@ export default function AgrarianDashboard() {
           </div>
         )}
 
-        {/* Bento Grid Layout for Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full">
+        {/* Bento Grid Layout for Main Content
+            `items-start` keeps each card at its natural height. Stretching them
+            to match meant the shorter card had to absorb the difference, and
+            that difference is largest while loading — the inventory skeleton is
+            taller than the handover panel, so the panel grew ~200px of slack. */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full xl:items-start">
 
           {/* Handover entry point (Primary Column) */}
           {/* The handover is a three-stage scanning flow with its own screen —
               it outgrew this dashboard cell, so this is the way in. */}
-          <section className="xl:col-span-8 flex flex-col h-full">
-            <Card className="border-border shadow-sm flex flex-col h-full">
+          <section className="xl:col-span-8 flex flex-col">
+            <Card className="border-border shadow-sm flex flex-col">
               <CardHeader className="border-b border-border pb-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -126,7 +137,7 @@ export default function AgrarianDashboard() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 flex flex-col gap-6 flex-1 justify-center">
+              <CardContent className="pt-2 flex flex-col gap-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-muted-foreground">Farmers awaiting collection</span>
@@ -166,8 +177,8 @@ export default function AgrarianDashboard() {
           </section>
 
           {/* Secondary Column (Inventory) */}
-          <section className="xl:col-span-4 flex flex-col h-full">
-            <Card className="border-border shadow-sm flex flex-col h-full">
+          <section className="xl:col-span-4 flex flex-col">
+            <Card className="border-border shadow-sm flex flex-col">
               <CardHeader className="border-b border-border pb-4">
                 <div className="flex items-center gap-3">
                   <PackageOpen className="text-primary w-6 h-6" />
@@ -176,10 +187,25 @@ export default function AgrarianDashboard() {
               </CardHeader>
               <CardContent className="pt-6 flex flex-col gap-6">
                 {isLoading ? (
-                  <>
-                    <Skeleton className="h-36 w-full rounded-lg" />
-                    <Skeleton className="h-36 w-full rounded-lg" />
-                  </>
+                  // Same wrapper, padding and gaps as a real stock card below,
+                  // so only the fetched figures are stood in for and the column
+                  // keeps its height. A flat h-36 block was 42px short of the
+                  // card it replaced, jolting the layout twice over on load.
+                  Array.from({ length: 2 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="bg-muted/20 p-6 rounded-lg border border-border flex flex-col gap-3"
+                    >
+                      <Skeleton className="h-5 w-28" />
+                      <div className="flex items-baseline gap-2">
+                        <Skeleton className="h-12 w-32" />
+                        <span className="text-base text-muted-foreground">kg left</span>
+                      </div>
+                      {/* The empty track is static chrome — only its fill is data. */}
+                      <div className="w-full bg-muted h-2.5 rounded-full mt-2 overflow-hidden" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  ))
                 ) : stockLines.length === 0 ? (
                   <div className="flex flex-col items-center text-center gap-2 py-8">
                     <div className="p-3 rounded-full bg-muted text-muted-foreground">
