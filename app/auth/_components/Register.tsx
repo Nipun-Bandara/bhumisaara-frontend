@@ -170,11 +170,13 @@ export default function Register({ onSwitchToLogin }: RegisterProps) {
                   <SelectTrigger className={`w-full ${formik.touched.role && formik.errors.role ? 'border-destructive focus-visible:ring-destructive focus-visible:ring-offset-2' : ''}`}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
+                  {/* Only the three self-service identities. System admin,
+                      government admin and agrarian service officer are
+                      appointments, granted by a system administrator — the
+                      backend rejects them here with a 403, so offering them
+                      would only produce a dead end. */}
                   <SelectContent>
                     <SelectItem value="FARMER">Farmer</SelectItem>
-                    <SelectItem value="SYSTEM_ADMIN">System Admin</SelectItem>
-                    <SelectItem value="GOVERNMENT_ADMIN">Government Admin</SelectItem>
-                    <SelectItem value="AGRARIAN_SERVICE_OFFICER">Agrarian Service Officer</SelectItem>
                     <SelectItem value="PRIVATE_AGRO_DEALER">Private Agro Dealer</SelectItem>
                     <SelectItem value="ORGANIC_FERTILIZER_PRODUCER">Organic Fertilizer Producer</SelectItem>
                   </SelectContent>
