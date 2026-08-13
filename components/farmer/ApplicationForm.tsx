@@ -190,7 +190,7 @@ export default function ApplicationForm() {
                   onChange={(e) => setRequestedKg(e.target.value)}
                   placeholder="e.g. 50"
                   disabled={isSaving}
-                  className="h-12 pr-12 bg-background"
+                  className="h-8 pr-12 bg-background"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   KG

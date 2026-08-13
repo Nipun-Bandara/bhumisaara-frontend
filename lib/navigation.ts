@@ -108,6 +108,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["GOVERNMENT_ADMIN"],
   },
   {
+    id: "officerDistributionHistory",
+    label: "Distribution History",
+    href: "/officer-distribution-history",
+    roles: ["GOVERNMENT_ADMIN"],
+  },
+  {
     id: "sackLabels",
     label: "Sack Labels",
     href: "/sack-labels",
@@ -169,6 +175,7 @@ export const ICONS_MAP: Record<string, ComponentType<SVGProps<SVGSVGElement>>> =
   distributionLevel: Layers,
   officerAssign: UserCheck,
   officerDistribution: Truck,
+  officerDistributionHistory: History,
   handover: Flame,
   sackLabels: QrCode,
   ownDistribution: History,

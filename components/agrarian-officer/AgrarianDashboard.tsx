@@ -83,10 +83,7 @@ export default function AgrarianDashboard() {
                 : "Manage inventory and process digital handovers to verified farmers."}
             </p>
           </div>
-          <div className="flex items-center gap-1.5 px-4 py-2 bg-secondary/30 text-secondary-foreground text-sm font-medium rounded-full border border-secondary/20 w-fit">
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
-            Connected to Polygon Amoy Testnet
-          </div>
+          
         </div>
 
         {loadError && (

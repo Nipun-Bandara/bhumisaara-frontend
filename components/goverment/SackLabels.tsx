@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
+import { jsPDF } from "jspdf";
 import axiosInstance from "@/utils/axiosInstance";
 import apiPaths from "@/utils/apiPaths";
 import { describeApiError } from "@/utils/apiError";
@@ -19,8 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Loader2, Printer, QrCode } from "lucide-react";
+import { Download, Loader2, Printer, QrCode } from "lucide-react";
 
 /**
  * Only the label sheet reaches the printer — the sidebar, headers and controls
@@ -60,6 +70,149 @@ export default function SackLabels() {
 
   const selectBatch = (batchId: string) => setSelectedBatchId(batchId);
 
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Kept alongside the preview: .save() re-triggers the same document rather
+  // than re-building it, so what downloads is exactly what was previewed.
+  const pdfDocRef = useRef<jsPDF | null>(null);
+  const pdfFileNameRef = useRef<string>("bhumisaara-sack-labels.pdf");
+
+  // The object URL backing the preview is only valid until revoked — do that
+  // on close/regenerate/unmount so a sheet generated twice doesn't leak the
+  // first blob.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  /**
+   * One QR label sheet, 3-up per row, matching the on-screen layout closely
+   * enough that what prints from the browser and what downloads here agree.
+   * The QR codes are re-rendered as PNGs via `qrcode` (not read off the
+   * on-screen `qrcode.react` SVGs) because jsPDF needs a raster/data-URL
+   * image, not a live DOM node.
+   */
+  const buildLabelsPdf = async (batch: NonNullable<typeof selectedBatch>, labelSacks: Sack[]) => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const marginX = 10;
+    const marginBottom = 10;
+    const columns = 3;
+    const gap = 6;
+    const cellWidth = (pageWidth - marginX * 2 - gap * (columns - 1)) / columns;
+    const cellHeight = 60;
+    const qrSize = 36;
+
+    doc.setFontSize(14);
+    doc.setTextColor(20);
+    doc.text(
+      `Sack Labels - ${batch.importerName} - TK-${batch.tokenId}`,
+      marginX,
+      12
+    );
+    doc.setFontSize(9);
+    doc.setTextColor(110);
+    doc.text(
+      `${labelSacks.length} labels - ${batch.fertilizerType} - generated ${new Date().toLocaleString()}`,
+      marginX,
+      18
+    );
+
+    const qrDataUrls = await Promise.all(
+      labelSacks.map((sack) => QRCode.toDataURL(sack.serial, { margin: 1, width: 300 }))
+    );
+
+    let x = marginX;
+    let y = 24;
+    let col = 0;
+
+    labelSacks.forEach((sack, index) => {
+      if (y + cellHeight > pageHeight - marginBottom) {
+        doc.addPage();
+        x = marginX;
+        y = marginX;
+        col = 0;
+      }
+
+      doc.setDrawColor(180);
+      doc.rect(x, y, cellWidth, cellHeight);
+
+      doc.addImage(qrDataUrls[index], "PNG", x + (cellWidth - qrSize) / 2, y + 4, qrSize, qrSize);
+
+      const centerX = x + cellWidth / 2;
+      doc.setFont("courier", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(20);
+      doc.text(sack.serial, centerX, y + qrSize + 10, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(90);
+      doc.text(`${batch.fertilizerType} - ${sack.weightKg}kg`, centerX, y + qrSize + 15, {
+        align: "center",
+      });
+      doc.text(`BhumiSaara - Batch #${sack.batchId}`, centerX, y + qrSize + 19, {
+        align: "center",
+      });
+
+      col += 1;
+      if (col >= columns) {
+        col = 0;
+        x = marginX;
+        y += cellHeight + gap;
+      } else {
+        x += cellWidth + gap;
+      }
+    });
+
+    const fileName = `bhumisaara-sack-labels-TK-${batch.tokenId}-${new Date()
+      .toISOString()
+      .slice(0, 10)}.pdf`;
+
+    return { doc, fileName };
+  };
+
+  const handleExportPdf = async () => {
+    if (!selectedBatch || sacks.length === 0) return;
+
+    setIsGeneratingPdf(true);
+    const toastId = toast.loading(`Generating ${sacks.length} QR labels...`);
+
+    try {
+      const { doc, fileName } = await buildLabelsPdf(selectedBatch, sacks);
+
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      pdfDocRef.current = doc;
+      pdfFileNameRef.current = fileName;
+      setPreviewUrl(URL.createObjectURL(doc.output("blob")));
+      setIsPreviewOpen(true);
+      toast.dismiss(toastId);
+    } catch (error) {
+      toast.dismiss(toastId);
+      toast.error("Could not generate the label sheet.", {
+        description: describeApiError(error, "Please try again."),
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleConfirmDownload = () => {
+    pdfDocRef.current?.save(pdfFileNameRef.current);
+  };
+
+  const handlePreviewOpenChange = (open: boolean) => {
+    setIsPreviewOpen(open);
+    if (!open && previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
   /** Batches minted before sacks existed have none until they're backfilled. */
   const handleBackfill = async () => {
     if (!selectedBatch) return;
@@ -97,15 +250,31 @@ export default function SackLabels() {
               Print a QR label for every sack so it can be scanned on handover.
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={() => window.print()}
-            disabled={sacks.length === 0}
-            className="h-12 px-8 text-sm font-semibold shadow-md hover:shadow-lg rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Printer className="w-4 h-4" />
-            Print Labels
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportPdf}
+              disabled={sacks.length === 0 || isGeneratingPdf}
+              className="h-12 px-8 text-sm font-semibold shadow-sm hover:shadow-md rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Download PDF
+            </Button>
+            <Button
+              type="button"
+              onClick={() => window.print()}
+              disabled={sacks.length === 0}
+              className="h-12 px-8 text-sm font-semibold shadow-md hover:shadow-lg rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Printer className="w-4 h-4" />
+              Print Labels
+            </Button>
+          </div>
         </div>
 
         <Card className="border-border shadow-sm print:hidden">
@@ -209,6 +378,40 @@ export default function SackLabels() {
           )}
         </div>
       </main>
+
+      <Sheet open={isPreviewOpen} onOpenChange={handlePreviewOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-3xl data-[side=right]:sm:max-w-3xl"
+        >
+          <SheetHeader>
+            <SheetTitle>Label Sheet Preview</SheetTitle>
+            <SheetDescription>
+              Review the QR label sheet before downloading it.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 min-h-0 px-4">
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                title="Sack label sheet PDF preview"
+                className="w-full h-full rounded-md border border-border"
+              />
+            )}
+          </div>
+
+          <SheetFooter className="flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => handlePreviewOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmDownload} className="gap-2">
+              <Download className="w-4 h-4" />
+              Download PDF
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

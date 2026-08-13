@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useActiveAccount, useReadContract, useSendTransaction } from "thirdweb/react";
 import { balanceOf, safeTransferFrom } from "thirdweb/extensions/erc1155";
 import { waitForReceipt } from "thirdweb";
@@ -17,7 +18,8 @@ import type { AreaDemand, Sack } from "@/lib/distribution";
 import { ScanField } from "@/components/goverment/QrScanner";
 import { TableEmptyState, TableErrorState, TableSkeletonRows } from "@/components/ui/table-states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -37,6 +39,7 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   CheckCircle,
+  History,
   Loader2,
   MapPin,
   Package,
@@ -119,8 +122,14 @@ export default function OfficerDistribution() {
     await Promise.all([demandQuery.refetch(), batchesQuery.refetch()]);
   }, [demandQuery, batchesQuery]);
 
+  // Areas already fully supplied (outstandingKg === 0) live on their own
+  // history page — mixing them in here made the admin scan past settled
+  // areas to find the ones that still need a transfer.
   const sortedDemand = useMemo(
-    () => [...demand].sort((a, b) => b.outstandingKg - a.outstandingKg),
+    () =>
+      [...demand]
+        .filter((row) => row.outstandingKg > 0)
+        .sort((a, b) => b.outstandingKg - a.outstandingKg),
     [demand]
   );
 
@@ -235,6 +244,18 @@ export default function OfficerDistribution() {
     if (scannedSerials.includes(serial)) {
       toast.error("Sack already scanned.", {
         description: `${serial} is already in this transfer.`,
+        icon: <AlertCircle className="w-5 h-5 text-destructive" />,
+      });
+      return;
+    }
+
+    // Nothing stops a sack scan from overshooting the area's outstanding
+    // demand otherwise — e.g. two 50kg sacks against a 50kg shortfall.
+    if (scannedKg + sack.weightKg > targetKg) {
+      toast.error("This would exceed the area's outstanding demand.", {
+        description: `Outstanding is ${formatKg(targetKg)}; adding ${serial} (${formatKg(
+          sack.weightKg
+        )}) would total ${formatKg(scannedKg + sack.weightKg)}.`,
         icon: <AlertCircle className="w-5 h-5 text-destructive" />,
       });
       return;
@@ -393,12 +414,21 @@ export default function OfficerDistribution() {
               Move sacks from the central store to the officer serving each area.
             </p>
           </div>
-          {!account && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive text-sm font-medium rounded-full border border-destructive/20 w-fit">
-              <Wallet className="w-4 h-4" />
-              Connect a wallet to transfer
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {!account && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive text-sm font-medium rounded-full border border-destructive/20 w-fit">
+                <Wallet className="w-4 h-4" />
+                Connect a wallet to transfer
+              </div>
+            )}
+            <Link
+              href="/officer-distribution-history"
+              className={cn(buttonVariants({ variant: "outline" }), "w-fit h-10 px-4 gap-2")}
+            >
+              <History className="w-4 h-4" />
+              Distribution History
+            </Link>
+          </div>
         </div>
 
         {/* A failed load is surfaced inside the queue table rather than
@@ -508,7 +538,7 @@ export default function OfficerDistribution() {
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="pt-2 space-y-6">
                 {!selectedDemand ? (
                   <p className="text-sm text-muted-foreground">
                     Select an area above to begin.
@@ -589,12 +619,17 @@ export default function OfficerDistribution() {
                           scannerId="sack-scanner"
                           label="Sack serial"
                           placeholder="XXXX-XXXX-XXXX"
-                          disabled={isSaving || isTxPending}
+                          disabled={isSaving || isTxPending || scannedKg >= targetKg}
                           onValue={handleSackScan}
                           onCameraError={(message) =>
                             toast.error("Camera unavailable.", { description: message })
                           }
                         />
+                        {scannedKg >= targetKg && (
+                          <p className="text-xs text-muted-foreground -mt-3">
+                            Outstanding demand fully covered — remove a sack above to scan a different one.
+                          </p>
+                        )}
 
                         {/* Scanned list */}
                         <div className="border border-border rounded-xl divide-y divide-border">
@@ -649,7 +684,7 @@ export default function OfficerDistribution() {
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="pt-2 space-y-6">
                 {!selectedDemand ? (
                   <p className="text-sm text-muted-foreground">Select an area above to begin.</p>
                 ) : (
@@ -698,7 +733,7 @@ export default function OfficerDistribution() {
 
             {/* ─── Action ─────────────────────────────────────────────────── */}
             <Card className="border-border shadow-sm">
-              <CardContent className="pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardContent className="pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="text-sm text-muted-foreground">
                   {selectedDemand && selectedBatch ? (
                     <span>

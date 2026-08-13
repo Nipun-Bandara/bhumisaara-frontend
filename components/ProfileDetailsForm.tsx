@@ -138,9 +138,15 @@ export default function ProfileDetailsForm({
               </div>
 
               <div className="w-full pt-4 border-t border-border space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-muted-foreground">Username</span>
-                  <span className="text-foreground font-medium truncate">{profile?.username ?? "—"}</span>
+                  {isLoading ? (
+                    <Skeleton className="h-4 w-20" />
+                  ) : (
+                    <span className="text-foreground font-medium truncate">
+                      {profile?.username ?? "—"}
+                    </span>
+                  )}
                 </div>
                 {profile?.areaName && (
                   <div className="flex justify-between gap-3">
@@ -150,11 +156,15 @@ export default function ProfileDetailsForm({
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between gap-3">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-muted-foreground">Wallet</span>
-                  <span className="text-foreground font-mono text-xs">
-                    {profile?.walletAddress ? truncateAddress(profile.walletAddress) : "Not linked"}
-                  </span>
+                  {isLoading ? (
+                    <Skeleton className="h-4 w-24" />
+                  ) : (
+                    <span className="text-foreground font-mono text-xs">
+                      {profile?.walletAddress ? truncateAddress(profile.walletAddress) : "Not linked"}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -180,15 +190,9 @@ export default function ProfileDetailsForm({
                     Try again
                   </Button>
                 </div>
-              ) : isLoading ? (
-                <div className="space-y-5">
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
               ) : (
                 <>
-                  {isIncomplete && (
+                  {!isLoading && isIncomplete && (
                     <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 px-4 py-3">
                       Your profile isn&apos;t complete yet — fill these in so officers and
                       administrators can identify you.
@@ -199,17 +203,23 @@ export default function ProfileDetailsForm({
                     <label htmlFor="fullName" className="block text-sm font-medium mb-1.5">
                       Full Name
                     </label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="e.g. Arjuna Perera"
-                      disabled={formik.isSubmitting}
-                      {...formik.getFieldProps("fullName")}
-                      className="h-10"
-                      aria-invalid={Boolean(formik.touched.fullName && formik.errors.fullName)}
-                    />
-                    {formik.touched.fullName && formik.errors.fullName && (
-                      <p className="text-destructive text-xs mt-1">{formik.errors.fullName}</p>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-full" />
+                    ) : (
+                      <>
+                        <Input
+                          id="fullName"
+                          type="text"
+                          placeholder="e.g. Arjuna Perera"
+                          disabled={formik.isSubmitting}
+                          {...formik.getFieldProps("fullName")}
+                          className="h-10"
+                          aria-invalid={Boolean(formik.touched.fullName && formik.errors.fullName)}
+                        />
+                        {formik.touched.fullName && formik.errors.fullName && (
+                          <p className="text-destructive text-xs mt-1">{formik.errors.fullName}</p>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -217,17 +227,23 @@ export default function ProfileDetailsForm({
                     <label htmlFor="address" className="block text-sm font-medium mb-1.5">
                       {addressLabel}
                     </label>
-                    <Input
-                      id="address"
-                      type="text"
-                      placeholder={addressPlaceholder}
-                      disabled={formik.isSubmitting}
-                      {...formik.getFieldProps("address")}
-                      className="h-10"
-                      aria-invalid={Boolean(formik.touched.address && formik.errors.address)}
-                    />
-                    {formik.touched.address && formik.errors.address && (
-                      <p className="text-destructive text-xs mt-1">{formik.errors.address}</p>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-full" />
+                    ) : (
+                      <>
+                        <Input
+                          id="address"
+                          type="text"
+                          placeholder={addressPlaceholder}
+                          disabled={formik.isSubmitting}
+                          {...formik.getFieldProps("address")}
+                          className="h-10"
+                          aria-invalid={Boolean(formik.touched.address && formik.errors.address)}
+                        />
+                        {formik.touched.address && formik.errors.address && (
+                          <p className="text-destructive text-xs mt-1">{formik.errors.address}</p>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -235,19 +251,25 @@ export default function ProfileDetailsForm({
                     <label htmlFor="contactNumber" className="block text-sm font-medium mb-1.5">
                       Contact Number
                     </label>
-                    <Input
-                      id="contactNumber"
-                      type="tel"
-                      placeholder="e.g. 0771234567"
-                      disabled={formik.isSubmitting}
-                      {...formik.getFieldProps("contactNumber")}
-                      className="h-10"
-                      aria-invalid={Boolean(
-                        formik.touched.contactNumber && formik.errors.contactNumber
-                      )}
-                    />
-                    {formik.touched.contactNumber && formik.errors.contactNumber && (
-                      <p className="text-destructive text-xs mt-1">{formik.errors.contactNumber}</p>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-full" />
+                    ) : (
+                      <>
+                        <Input
+                          id="contactNumber"
+                          type="tel"
+                          placeholder="e.g. 0771234567"
+                          disabled={formik.isSubmitting}
+                          {...formik.getFieldProps("contactNumber")}
+                          className="h-10"
+                          aria-invalid={Boolean(
+                            formik.touched.contactNumber && formik.errors.contactNumber
+                          )}
+                        />
+                        {formik.touched.contactNumber && formik.errors.contactNumber && (
+                          <p className="text-destructive text-xs mt-1">{formik.errors.contactNumber}</p>
+                        )}
+                      </>
                     )}
                   </div>
                 </>

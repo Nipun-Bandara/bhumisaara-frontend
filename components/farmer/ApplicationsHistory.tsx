@@ -75,8 +75,8 @@ export default function ApplicationsHistory() {
   };
 
   return (
-    <div className="flex flex-col min-h-full w-full bg-background">
-      <main className="flex-grow pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full pb-8 space-y-8">
+    <div className="flex flex-col min-h-full w-full min-w-0 bg-background">
+      <main className="flex-grow min-w-0 pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full pb-8 space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -102,7 +102,7 @@ export default function ApplicationsHistory() {
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-w-0">
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <h2 className="text-xl font-semibold text-foreground">My Applications</h2>
             <Button variant="outline" size="sm" onClick={loadRequests} disabled={isLoading}>
@@ -177,7 +177,7 @@ export default function ApplicationsHistory() {
         </div>
 
         {/* Collections — what was physically handed over, proven by a token burn */}
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-w-0">
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-foreground">My Collections</h2>

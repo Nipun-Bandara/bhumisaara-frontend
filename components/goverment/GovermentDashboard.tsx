@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import MintBatchForm from "./MintBatchForm";
 import TxHashBadge from "./TxHashBadge";
 import { useMintedBatches } from "@/hooks/use-minted-batches";
@@ -13,6 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableEmptyState, TableSkeletonRows } from "@/components/ui/table-states";
 import WalletAssets from "@/components/WalletAssets";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import {
   Download,
   Truck,
@@ -92,6 +102,106 @@ export default function GovermentDashboard() {
     return holders;
   }, [transfers]);
 
+  const custodianLabel = (tokenId: string) => {
+    const holders = custodianByTokenId.get(tokenId);
+    if (!holders || holders.size === 0) return "Government Reserve";
+    return holders.size === 1 ? [...holders][0] : `${holders.size} officers`;
+  };
+
+  const isExportDisabled = isNFTsLoading || isLedgerLoading;
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Kept alongside the preview: .save() re-triggers the same document rather
+  // than re-building it, so what downloads is exactly what was previewed.
+  const pdfDocRef = useRef<jsPDF | null>(null);
+  const pdfFileNameRef = useRef<string>("bhumisaara-dashboard.pdf");
+
+  // The object URL backing the preview is only valid until revoked — do that
+  // on close/unmount so a report generated twice doesn't leak the first blob.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  /**
+   * Everything here is already on screen — the KPI ribbon and the ledger
+   * table — just laid out for print. Generated client-side like every other
+   * chain-adjacent artifact in this app; no backend endpoint for it.
+   */
+  const buildReportPdf = () => {
+    const doc = new jsPDF();
+    const generatedAt = new Date();
+
+    doc.setFontSize(18);
+    doc.text("BhumiSaara - National Distribution Report", 14, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(110);
+    doc.text(`Generated ${generatedAt.toLocaleString()}`, 14, 25);
+
+    autoTable(doc, {
+      startY: 32,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Imported (Tons)", totalImportedTons],
+        ["Active Batches Minted", String(activeTokensMinted)],
+        ["Total Decentralized Burns", `${totalBurns} (${formatKg(burnedKg)} collected by farmers)`],
+        ["Active Agrarian Centers", `${activeCentres} areas with an officer assigned`],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [22, 101, 52] },
+    });
+
+    const tableWithMeta = doc as unknown as { lastAutoTable: { finalY: number } };
+    const ledgerStartY = tableWithMeta.lastAutoTable.finalY + 12;
+
+    doc.setFontSize(13);
+    doc.setTextColor(20);
+    doc.text("Global Live Ledger", 14, ledgerStartY);
+
+    autoTable(doc, {
+      startY: ledgerStartY + 4,
+      head: [["Batch ID", "Token ID", "Supply Level (kg)", "Current Custodian"]],
+      body: records.map((record) => [
+        record.name,
+        `TK-${record.tokenId.toString()}`,
+        formatKg(Number(record.supply)),
+        custodianLabel(record.tokenId.toString()),
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [22, 101, 52] },
+      styles: { fontSize: 9 },
+    });
+
+    return {
+      doc,
+      fileName: `bhumisaara-dashboard-${generatedAt.toISOString().slice(0, 10)}.pdf`,
+    };
+  };
+
+  const handleExportPdf = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+    const { doc, fileName } = buildReportPdf();
+    pdfDocRef.current = doc;
+    pdfFileNameRef.current = fileName;
+    setPreviewUrl(URL.createObjectURL(doc.output("blob")));
+    setIsPreviewOpen(true);
+  };
+
+  const handleConfirmDownload = () => {
+    pdfDocRef.current?.save(pdfFileNameRef.current);
+  };
+
+  const handlePreviewOpenChange = (open: boolean) => {
+    setIsPreviewOpen(open);
+    if (!open && previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-full w-full bg-background">
       <main className="flex-grow px-4 md:px-8 max-w-8xl mx-auto w-full pb-8 space-y-8">
@@ -104,7 +214,12 @@ export default function GovermentDashboard() {
               Real-time national grid agrarian metrics.
             </p>
           </div>
-          <Button variant="outline" className="hidden sm:flex items-center gap-2 shadow-sm">
+          <Button
+            variant="outline"
+            className="hidden sm:flex items-center gap-2 shadow-sm"
+            onClick={handleExportPdf}
+            disabled={isExportDisabled}
+          >
             <Download className="w-4 h-4" />
             Export PDF
           </Button>
@@ -123,7 +238,9 @@ export default function GovermentDashboard() {
               </span>
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">Total Imported (Tons)</p>
-            <h3 className="text-4xl font-bold text-foreground group-hover:text-primary transition-colors">{totalImportedTons}</h3>
+            <h3 className="text-4xl font-bold text-foreground group-hover:text-primary transition-colors">
+              {isNFTsLoading ? <Skeleton className="h-9 w-16" /> : totalImportedTons}
+            </h3>
           </div>
 
           <div className="bg-card rounded-xl p-6 border border-border shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 group">
@@ -137,7 +254,9 @@ export default function GovermentDashboard() {
               </span>
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">Active Batches Minted</p>
-            <h3 className="text-4xl font-bold text-foreground group-hover:text-primary transition-colors">{activeTokensMinted}</h3>
+            <h3 className="text-4xl font-bold text-foreground group-hover:text-primary transition-colors">
+              {isNFTsLoading ? <Skeleton className="h-9 w-16" /> : activeTokensMinted}
+            </h3>
           </div>
 
           <div className="bg-card rounded-xl p-6 border border-border shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 group">
@@ -237,13 +356,7 @@ export default function GovermentDashboard() {
                           {formatKg(Number(record.supply))}
                         </TableCell>
                         <TableCell className="py-4 px-6 text-foreground">
-                          {(() => {
-                            const holders = custodianByTokenId.get(record.tokenId.toString());
-                            if (!holders || holders.size === 0) return "Government Reserve";
-                            return holders.size === 1
-                              ? [...holders][0]
-                              : `${holders.size} officers`;
-                          })()}
+                          {custodianLabel(record.tokenId.toString())}
                         </TableCell>
                         <TableCell className="py-4 px-6 text-center">
                           <TxHashBadge transactionHash={record.transactionHash} groupHover />
@@ -267,7 +380,41 @@ export default function GovermentDashboard() {
         </section>
         
       </main>
-      
+
+      <Sheet open={isPreviewOpen} onOpenChange={handlePreviewOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-3xl data-[side=right]:sm:max-w-3xl"
+        >
+          <SheetHeader>
+            <SheetTitle>Export Preview</SheetTitle>
+            <SheetDescription>
+              Review the report before downloading it.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 min-h-0 px-4">
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                title="Dashboard report PDF preview"
+                className="w-full h-full rounded-md border border-border"
+              />
+            )}
+          </div>
+
+          <SheetFooter className="flex-row justify-end gap-2">
+            <Button variant="outline" onClick={() => handlePreviewOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmDownload} className="gap-2">
+              <Download className="w-4 h-4" />
+              Download PDF
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes shimmer {
           100% { transform: translateX(100%); }

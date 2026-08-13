@@ -57,8 +57,8 @@ export default function AreaApplicationsHistory() {
   );
 
   return (
-    <div className="flex flex-col min-h-full w-full bg-background">
-      <main className="flex-grow pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full pb-8 space-y-8">
+    <div className="flex flex-col min-h-full w-full min-w-0 bg-background">
+      <main className="flex-grow min-w-0 pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full pb-8 space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -85,7 +85,7 @@ export default function AreaApplicationsHistory() {
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden min-w-0">
           <div className="px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xl font-semibold text-foreground">Area Applications</h2>
             <div className="flex items-center gap-3">
